@@ -1,0 +1,159 @@
+/* animation.css — keyframes and animated element styles */
+
+@keyframes popIn {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.2); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes crossfadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes diffPulse {
+  0%   { opacity: 0.3; }
+  50%  { opacity: 1;   }
+  100% { opacity: 1;   }
+}
+
+@keyframes tokenPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* Step badge */
+.step-badge text {
+  transform-origin: center;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transform-box: fill-box;
+}
+.step-badge circle {
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Diff overlay entry */
+[data-node-id].diff-added,
+[data-node-id].diff-removed,
+[data-node-id].diff-changed {
+  animation: diffPulse 0.6s ease forwards;
+}
+
+/* View-mode crossfade */
+.view-transition #nodes-layer,
+.view-transition #connections-layer {
+  animation: crossfadeIn 0.25s ease;
+}
+
+/* ── Simulation clock ───────────────────────────────────────────── */
+.sim-clock {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(30, 58, 95, 0.6);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* Speed buttons */
+.speed-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-dim, #334155);
+  border-radius: 3px;
+  background: var(--bg-elevated, #1e293b);
+  color: var(--text-dim, #94a3b8);
+  cursor: pointer;
+  margin: 0 1px;
+}
+.speed-btn.active {
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+/* ── Simulation summary overlay ─────────────────────────────────── */
+.sim-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sim-summary {
+  background: var(--bg-elevated, #1e293b);
+  border: 1px solid var(--border-mid, #334155);
+  border-radius: 12px;
+  padding: 24px 32px;
+  max-width: 560px;
+  min-width: 360px;
+  color: var(--text-main, #e2e8f0);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.sim-summary h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #60a5fa;
+}
+.sim-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.sim-summary td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sim-summary td:first-child {
+  color: var(--text-dim, #94a3b8);
+  white-space: nowrap;
+}
+.sim-summary td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+.sim-summary .btn-close-sim {
+  display: block;
+  margin: 0 auto;
+  padding: 6px 24px;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.sim-summary .btn-close-sim:hover {
+  background: #2563eb;
+}
+
+/* ── Connection flow animation (9.7) ───────────────────────────── */
+.flow-animated path {
+  stroke-dasharray: 6 4;
+  animation: flowDash 1s linear infinite;
+}
+@keyframes flowDash {
+  to { stroke-dashoffset: -10; }
+}
+
+/* ── Agent tokens ───────────────────────────────────────────────── */
+.agent-token {
+  transition: opacity 0.3s;
+}

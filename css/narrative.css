@@ -1,0 +1,69 @@
+/* narrative.css — story mode slide layouts */
+/* Populated by agent C3 — stub for now */
+
+#narrative-view {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  z-index: 200;
+  background: var(--bg-main);
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  overflow: hidden;
+}
+
+#narrative-main {
+  padding: 32px;
+  overflow-y: auto;
+  position: relative;
+}
+
+#narrative-sidebar {
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-dim);
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#slide-nav-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.slide-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border-mid);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.slide-dot.active { background: var(--accent); }
+
+.slide-card {
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  animation: slideIn 0.3s ease;
+}
+.slide-problem { background: linear-gradient(135deg,#1a0505,#2a0a0a); border: 1px solid #7f1d1d; }
+.slide-vision  { background: linear-gradient(135deg,#051a0a,#0a2a12); border: 1px solid #14532d; }
+.slide-phase   { background: linear-gradient(135deg,#050d1a,#0a1527); border: 1px solid #1e3a5f; }
+
+#btn-back-to-story {
+  position: fixed;
+  top: calc(var(--header-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 201;
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+  color: var(--accent);
+  padding: 6px 16px;
+}
+
+@media (max-width: 768px) {
+  #narrative-view { grid-template-columns: 1fr; }
+  #narrative-sidebar { display: none; }
+}

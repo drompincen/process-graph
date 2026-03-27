@@ -1,0 +1,344 @@
+{
+  "title": "Purchase Approval Process",
+  "description": "Improvement from manual paper-based approvals to automated portal",
+  "notes": "Process Owner: Finance Operations\nLast Reviewed: 2024-Q1\nSLA Target: < 2 hours (after)\nEscalation: finance-ops@company.com",
+
+  "metrics": {
+    "before": {
+      "stepCount": 6,
+      "cycleTimeHours": 48,
+      "handoffCount": 4,
+      "errorRate": "~15%",
+      "automationPct": 0,
+      "costPerCase": 240
+    },
+    "after": {
+      "stepCount": 3,
+      "cycleTimeHours": 2,
+      "handoffCount": 1,
+      "errorRate": "~2%",
+      "automationPct": 80,
+      "costPerCase": 35
+    }
+  },
+
+  "lanes": [
+    { "id": "requester", "label": "Requester", "color": "#1e3a5f", "height": 130 },
+    { "id": "manager",   "label": "Manager",   "color": "#1a3a2a", "height": 130 },
+    { "id": "finance",   "label": "Finance",   "color": "#3a1a3a", "height": 130 },
+    { "id": "system",    "label": "System",    "color": "#2a2a1a", "height": 130 }
+  ],
+
+  "phases": [
+    { "id": "phase1", "label": "Digitise Forms" },
+    { "id": "phase2", "label": "Auto Budget Check" },
+    { "id": "phase3", "label": "Smart Routing" }
+  ],
+
+  "nodes": [
+    { "id": "b-start",        "type": "start-event",  "label": "Start",             "lane": "requester", "x": 110,  "phase": "before" },
+    { "id": "b-fill-form",    "type": "task",          "label": "Fill Paper\nForm",  "lane": "requester", "x": 230,  "phase": "before", "diff": "removed" },
+    { "id": "b-mgr-review",   "type": "task",          "label": "Manager\nReview",   "lane": "manager",   "x": 380,  "phase": "before" },
+    { "id": "b-fin-check",    "type": "task",          "label": "Finance\nManual\nCheck", "lane": "finance", "x": 380, "phase": "before", "diff": "removed" },
+    { "id": "b-gateway",      "type": "gateway",       "label": "Approved?",         "lane": "manager",   "x": 530,  "phase": "before" },
+    { "id": "b-approved",     "type": "end-event",     "label": "Approved",          "lane": "requester", "x": 660,  "phase": "before" },
+    { "id": "b-rejected",     "type": "end-event",     "label": "Rejected",          "lane": "finance",   "x": 660,  "phase": "before" },
+    { "id": "b-note",         "type": "annotation",    "label": "⚠ Bottleneck:\n2-3 day delay\nat each handoff", "lane": "manager", "x": 230, "phase": "before" },
+
+    { "id": "a-start",        "type": "start-event",   "label": "Start",             "lane": "requester", "x": 110,  "phase": "after" },
+    { "id": "a-portal",       "type": "task",          "label": "Submit via\nPortal", "lane": "requester", "x": 230,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-auto-check",   "type": "subprocess",    "label": "Auto Budget\nValidation", "lane": "system", "x": 380, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-mgr-review",   "type": "task",          "label": "Manager\nReview",   "lane": "manager",   "x": 530,  "phase": "after" },
+    { "id": "a-gateway",      "type": "gateway",       "label": "Approved?",         "lane": "manager",   "x": 680,  "phase": "after" },
+    { "id": "a-approved",     "type": "end-event",     "label": "Approved",          "lane": "requester", "x": 800,  "phase": "after" },
+    { "id": "a-rejected",     "type": "end-event",     "label": "Rejected",          "lane": "requester", "x": 800,  "phase": "after" },
+    { "id": "a-int-event",    "type": "intermediate-event", "label": "Notify\nRequester", "lane": "system", "x": 800, "phase": "after" },
+
+    { "id": "a-persona-ex",   "type": "persona",    "label": "Employee\nRequester",   "lane": "requester", "x": 960, "phase": "after", "diff": "added" },
+    { "id": "a-agent-ex",     "type": "agent",      "label": "Approval\nAgent",        "lane": "system",    "x": 960, "phase": "after", "diff": "added" },
+    { "id": "a-system-ex",    "type": "system",     "label": "Budget\nValidation API", "lane": "finance",   "x": 960, "phase": "after", "diff": "added" }
+  ],
+
+  "connections": [
+    { "id": "b-c1", "from": "b-start",      "to": "b-fill-form",  "type": "sequence", "phase": "before" },
+    { "id": "b-c2", "from": "b-fill-form",  "to": "b-mgr-review", "type": "sequence", "phase": "before" },
+    { "id": "b-c3", "from": "b-mgr-review", "to": "b-fin-check",  "type": "message",  "phase": "before" },
+    { "id": "b-c4", "from": "b-fin-check",  "to": "b-gateway",    "type": "message",  "phase": "before" },
+    { "id": "b-c5", "from": "b-gateway",    "to": "b-approved",   "type": "sequence", "phase": "before", "decision": "yes", "label": "Yes" },
+    { "id": "b-c6", "from": "b-gateway",    "to": "b-rejected",   "type": "sequence", "phase": "before", "decision": "no",  "label": "No" },
+    { "id": "b-c7", "from": "b-mgr-review", "to": "b-mgr-review", "type": "conditional", "phase": "before", "label": "Needs info", "offset": 40 },
+
+    { "id": "a-c1", "from": "a-start",      "to": "a-portal",     "type": "sequence", "phase": "after" },
+    { "id": "a-c2", "from": "a-portal",     "to": "a-auto-check", "type": "message",  "phase": "after" },
+    { "id": "a-c3", "from": "a-auto-check", "to": "a-mgr-review", "type": "message",  "phase": "after" },
+    { "id": "a-c4", "from": "a-mgr-review", "to": "a-gateway",    "type": "sequence", "phase": "after" },
+    { "id": "a-c5", "from": "a-gateway",    "to": "a-approved",   "type": "sequence", "phase": "after", "decision": "yes", "label": "Yes" },
+    { "id": "a-c6", "from": "a-gateway",    "to": "a-rejected",   "type": "sequence", "phase": "after", "decision": "no",  "label": "No" },
+    { "id": "a-c7", "from": "a-auto-check", "to": "a-int-event",  "type": "message",  "phase": "after" }
+  ],
+
+  "flows": [
+    {
+      "id": "happy-path",
+      "name": "Happy Path",
+      "sequence": [
+        { "from": "a-start",      "to": "a-portal",     "text": "Employee opens portal",           "status": "ready" },
+        { "from": "a-portal",     "to": "a-auto-check", "text": "Request submitted — validating",  "status": "ready",
+          "popup": { "type": "amplify", "msg": "Auto-validated in <2 seconds" } },
+        { "from": "a-auto-check", "to": "a-mgr-review", "text": "Budget OK — routing to manager",  "status": "ready" },
+        { "from": "a-mgr-review", "to": "a-gateway",    "text": "Manager reviews request",         "status": "wip" },
+        { "from": "a-gateway",    "to": "a-approved",   "text": "Approved ✓",                      "status": "ready" }
+      ]
+    },
+    {
+      "id": "exception",
+      "name": "Over-Budget Exception",
+      "sequence": [
+        { "from": "a-start",      "to": "a-portal",     "text": "Employee opens portal" },
+        { "from": "a-portal",     "to": "a-auto-check", "text": "Request submitted",
+          "popup": { "type": "alert", "msg": "Budget limit exceeded — escalating" } },
+        { "from": "a-auto-check", "to": "a-mgr-review", "text": "Flagged for manual review", "status": "wip" },
+        { "from": "a-mgr-review", "to": "a-gateway",    "text": "Manager reviews escalation" },
+        { "from": "a-gateway",    "to": "a-rejected",   "text": "Rejected — over budget",
+          "popup": { "type": "issue", "msg": "Request rejected: exceeds policy limit" } }
+      ]
+    }
+  ],
+
+  "sequence": [
+    { "from": "a-start",      "to": "a-portal",     "text": "Employee opens portal",          "status": "ready" },
+    { "from": "a-portal",     "to": "a-auto-check", "text": "Order submitted — auto-checking", "status": "ready" },
+    { "from": "a-auto-check", "to": "a-mgr-review", "text": "Budget validated — to manager",  "status": "ready" },
+    { "from": "a-mgr-review", "to": "a-gateway",    "text": "Manager review complete",         "status": "ready" },
+    { "from": "a-gateway",    "to": "a-approved",   "text": "Approved ✓",                      "status": "ready" }
+  ],
+
+  "story": {
+    "storyId": "purchase-approval-improvement",
+    "version": 1,
+    "createdAt": "2024-01-15",
+    "createdBy": "process.owner@company.com",
+
+    "problem": {
+      "headline": "Purchase approvals take 48 hours and have a 15% error rate",
+      "description": "Finance manually checks every request against <b>budget spreadsheets</b>. Four handoffs per request create bottlenecks and delays. Errors require rework and further slow procurement.",
+      "impactMetric": { "kpiId": "cycle-time", "value": 48, "unit": "hours" },
+      "evidence": [
+        { "label": "Q3 Process Audit",      "url": "#", "addedAt": "2024-01-10", "addedBy": "jane@co.com" },
+        { "label": "Employee Survey (n=84)", "url": "#", "addedAt": "2024-01-12", "addedBy": "bob@co.com" }
+      ],
+      "scope": ["b-fill-form", "b-fin-check", "b-mgr-review"],
+      "risks": [
+        "Manual checks miss mid-year policy changes",
+        "No audit trail for rejected requests",
+        "Finance team bottleneck — 2-3 day SLA breach"
+      ]
+    },
+
+    "vision": {
+      "summary": "Automated portal reduces approvals to under 2 hours",
+      "description": "Replace paper form with <b>self-service portal</b>. Auto-validate budget in real-time via Finance system API. Manager review only required when policy demands it.",
+      "kpiTargets": [
+        { "kpiId": "cycle-time",  "min": 1,  "max": 2,  "confidence": "high",   "horizon": "Q2 2024" },
+        { "kpiId": "error-rate",  "min": 1,  "max": 3,  "confidence": "medium", "horizon": "Q3 2024" },
+        { "kpiId": "handoffs",    "min": 1,  "max": 1,  "confidence": "high",   "horizon": "Q2 2024" }
+      ],
+      "acceptanceCriteria": [
+        "Portal handles 100% of standard requests under $10k",
+        "Auto budget check responds in under 3 seconds",
+        "Full audit trail maintained in system",
+        "Zero paper forms in process"
+      ]
+    },
+
+    "phases": [
+      {
+        "label": "Phase 1: Digitise Forms",
+        "phaseRef": "phase1",
+        "description": "Replace paper form with <b>web portal</b>. Employees submit structured requests online. No process logic change yet — manager still reviews everything.",
+        "duration": "4 weeks"
+      },
+      {
+        "label": "Phase 2: Auto Budget Check",
+        "phaseRef": "phase2",
+        "description": "Add <b>real-time API validation</b> against Finance system. Remove manual Finance lane entirely. Manager only sees pre-validated requests.",
+        "duration": "6 weeks"
+      },
+      {
+        "label": "Phase 3: Smart Routing",
+        "phaseRef": "phase3",
+        "description": "<b>Risk-based auto-approval</b> for requests under policy threshold. Skip manager review for 60% of cases. Manager reviews only high-value or flagged requests.",
+        "duration": "4 weeks"
+      }
+    ],
+
+    "ideaCards": [
+      {
+        "id": "ic1",
+        "title": "Self-Service Portal",
+        "phases": ["phase1"],
+        "hypothesis": "Moving to a <b>structured web form</b> eliminates transcription errors and removes the paper handoff step to Finance.",
+        "expectedKpiImpacts": [
+          { "kpiId": "handoffs",   "delta": -1, "confidence": "high" },
+          { "kpiId": "error-rate", "delta": -5, "confidence": "medium" }
+        ]
+      },
+      {
+        "id": "ic2",
+        "title": "Auto Budget Validation",
+        "phases": ["phase2"],
+        "hypothesis": "Real-time API call to Finance system replaces manual spreadsheet check — <b>removes Finance lane entirely</b> and cuts cycle time by 30+ hours.",
+        "expectedKpiImpacts": [
+          { "kpiId": "cycle-time", "delta": -30, "confidence": "high" },
+          { "kpiId": "handoffs",   "delta": -2,  "confidence": "high" },
+          { "kpiId": "error-rate", "delta": -8,  "confidence": "high" }
+        ]
+      },
+      {
+        "id": "ic3",
+        "title": "Risk-Based Routing",
+        "phases": ["phase3"],
+        "hypothesis": "Auto-approve requests under policy threshold — <b>skip manager review</b> for 60% of standard cases. Manager focuses on exceptions.",
+        "expectedKpiImpacts": [
+          { "kpiId": "cycle-time", "delta": -16, "confidence": "medium" },
+          { "kpiId": "handoffs",   "delta": -1,  "confidence": "medium" }
+        ]
+      }
+    ],
+
+    "kpis": [
+      { "id": "cycle-time", "label": "Cycle Time",    "unit": "hrs", "direction": "lower_is_better", "baseline": 48, "current": 48, "format": "0" },
+      { "id": "handoffs",   "label": "Handoff Count", "unit": "",    "direction": "lower_is_better", "baseline": 4,  "current": 4,  "format": "0" },
+      { "id": "error-rate", "label": "Error Rate",    "unit": "%",   "direction": "lower_is_better", "baseline": 15, "current": 15, "format": "0" }
+    ],
+
+    "benefits": [
+      {
+        "id": "b1",
+        "title": "Faster Approvals",
+        "phaseId": "phase2",
+        "kpiId": "cycle-time",
+        "baseline": 48,
+        "targetRange": { "min": 1, "max": 2 },
+        "boundNodes": ["a-auto-check", "a-portal"],
+        "realized": false
+      },
+      {
+        "id": "b2",
+        "title": "Fewer Errors",
+        "phaseId": "phase2",
+        "kpiId": "error-rate",
+        "baseline": 15,
+        "targetRange": { "min": 1, "max": 3 },
+        "boundNodes": ["a-auto-check"],
+        "realized": false
+      },
+      {
+        "id": "b3",
+        "title": "Reduced Handoffs",
+        "phaseId": "phase3",
+        "kpiId": "handoffs",
+        "baseline": 4,
+        "targetRange": { "min": 1, "max": 1 },
+        "boundNodes": ["a-gateway", "a-mgr-review"],
+        "realized": false
+      }
+    ],
+
+    "uiHints": {
+      "initialView": "split",
+      "initialPhase": "phase1"
+    }
+  },
+
+  "spec": {
+    "schemaVersion": "1.0",
+    "description": "Before/after comparison of a purchase approval process: manual paper-based (before) vs. automated portal with budget validation (after).",
+    "nodeInventory": [
+      { "id": "b-start",      "type": "start-event",        "lane": "requester", "phase": "before", "role": "Triggers the before-state approval process",                                 "critical": true  },
+      { "id": "b-fill-form",  "type": "task",                "lane": "requester", "phase": "before", "role": "Employee manually fills paper form — primary bottleneck source",             "critical": true  },
+      { "id": "b-mgr-review", "type": "task",                "lane": "manager",   "phase": "before", "role": "Manager manually reviews paper form and decides",                            "critical": true  },
+      { "id": "b-fin-check",  "type": "task",                "lane": "finance",   "phase": "before", "role": "Finance manually checks budget availability against spreadsheet",            "critical": true  },
+      { "id": "b-gateway",    "type": "gateway",             "lane": "manager",   "phase": "before", "role": "Approval decision split: yes → approved, no → rejected",                   "critical": true  },
+      { "id": "b-approved",   "type": "end-event",           "lane": "requester", "phase": "before", "role": "Request approved — requester notified via email",                           "critical": false },
+      { "id": "b-rejected",   "type": "end-event",           "lane": "finance",   "phase": "before", "role": "Request rejected — no audit trail",                                        "critical": false },
+      { "id": "b-note",       "type": "annotation",          "lane": "manager",   "phase": "before", "role": "Documents 2-3 day bottleneck at manual review steps",                      "critical": false },
+      { "id": "a-start",      "type": "start-event",         "lane": "requester", "phase": "after",  "role": "Triggers the after-state automated approval process",                       "critical": true  },
+      { "id": "a-portal",     "type": "task",                "lane": "requester", "phase": "after",  "role": "Employee self-service portal submission — structured, validated",           "critical": true  },
+      { "id": "a-auto-check", "type": "subprocess",          "lane": "system",    "phase": "after",  "role": "Automated real-time budget validation via Finance API",                     "critical": true  },
+      { "id": "a-mgr-review", "type": "task",                "lane": "manager",   "phase": "after",  "role": "Manager reviews only policy-exceeding requests",                            "critical": true  },
+      { "id": "a-gateway",    "type": "gateway",             "lane": "manager",   "phase": "after",  "role": "Approval decision split after automated pre-check",                        "critical": true  },
+      { "id": "a-approved",   "type": "end-event",           "lane": "requester", "phase": "after",  "role": "Request approved with full digital audit trail",                            "critical": false },
+      { "id": "a-rejected",   "type": "end-event",           "lane": "requester", "phase": "after",  "role": "Request rejected with reason code",                                        "critical": false },
+      { "id": "a-int-event",  "type": "intermediate-event",  "lane": "system",    "phase": "after",  "role": "System sends automated notification to requester",                         "critical": false }
+    ],
+    "connectionInventory": [
+      { "id": "b-c1", "from": "b-start",      "to": "b-fill-form",  "semantics": "Process starts: employee picks up paper form" },
+      { "id": "b-c2", "from": "b-fill-form",  "to": "b-mgr-review", "semantics": "Completed form physically handed or emailed to manager" },
+      { "id": "b-c3", "from": "b-mgr-review", "to": "b-fin-check",  "semantics": "Manager sends to Finance for budget check (cross-lane message)" },
+      { "id": "b-c4", "from": "b-fin-check",  "to": "b-gateway",    "semantics": "Finance returns result to manager gateway (cross-lane message)" },
+      { "id": "b-c5", "from": "b-gateway",    "to": "b-approved",   "semantics": "Approval granted", "conditions": "Budget available and policy satisfied" },
+      { "id": "b-c6", "from": "b-gateway",    "to": "b-rejected",   "semantics": "Approval denied",  "conditions": "Budget exceeded or policy violation" },
+      { "id": "b-c7", "from": "b-mgr-review", "to": "b-mgr-review", "semantics": "Manager requests more info — loop back (self-loop)", "conditions": "Form incomplete or ambiguous" },
+      { "id": "a-c1", "from": "a-start",      "to": "a-portal",     "semantics": "Employee opens portal and begins structured submission" },
+      { "id": "a-c2", "from": "a-portal",     "to": "a-auto-check", "semantics": "Structured request sent to auto-validation subprocess" },
+      { "id": "a-c3", "from": "a-auto-check", "to": "a-mgr-review", "semantics": "Policy-exceeding requests escalated to manager" },
+      { "id": "a-c4", "from": "a-mgr-review", "to": "a-gateway",    "semantics": "Manager decision forwarded to gateway" },
+      { "id": "a-c5", "from": "a-gateway",    "to": "a-approved",   "semantics": "Approval granted", "conditions": "Within policy or manager approved" },
+      { "id": "a-c6", "from": "a-gateway",    "to": "a-rejected",   "semantics": "Approval denied",  "conditions": "Over budget or flagged by policy" },
+      { "id": "a-c7", "from": "a-auto-check", "to": "a-int-event",  "semantics": "System fires notification event to requester upon decision" }
+    ],
+    "behaviors": [
+      {
+        "id": "beh-drag-snap",
+        "trigger": "User drags a node in edit mode",
+        "expectedOutcome": "Node snaps to nearest 20px grid position; connections re-route in real time",
+        "involvedNodes": ["b-mgr-review", "a-mgr-review"],
+        "testRef": "J6-S3"
+      },
+      {
+        "id": "beh-undo-drag",
+        "trigger": "Ctrl+Z after a node drag",
+        "expectedOutcome": "Node returns to its pre-drag position; connections revert",
+        "involvedNodes": ["b-mgr-review"],
+        "testRef": "J6-S5"
+      },
+      {
+        "id": "beh-no-overlap",
+        "trigger": "User drags a node onto another node's bounding box",
+        "expectedOutcome": "Node resolves to nearest non-overlapping snapped position",
+        "involvedNodes": ["b-mgr-review", "b-gateway"],
+        "testRef": "J14-S5"
+      },
+      {
+        "id": "beh-live-edge",
+        "trigger": "User holds mouse button during drag",
+        "expectedOutcome": "Connection paths update in real time while mouse is held down",
+        "involvedNodes": ["b-mgr-review"],
+        "testRef": "J14-S1"
+      },
+      {
+        "id": "beh-simulation",
+        "trigger": "User clicks Simulate",
+        "expectedOutcome": "Token travels along connection paths from node to node following sequence",
+        "involvedNodes": ["a-start", "a-portal", "a-auto-check", "a-mgr-review", "a-gateway", "a-approved"],
+        "testRef": "J5-S1"
+      },
+      {
+        "id": "beh-label-edit",
+        "trigger": "User double-clicks a node in edit mode",
+        "expectedOutcome": "Inline text input appears; pressing Enter commits new label to SVG",
+        "involvedNodes": ["b-mgr-review"],
+        "testRef": "J6-S7"
+      }
+    ],
+    "invariants": [
+      "Every before-phase path from b-start reaches either b-approved or b-rejected",
+      "Every after-phase path from a-start reaches either a-approved, a-rejected, or a-int-event",
+      "No two nodes within the same lane share the same x coordinate",
+      "No two node bounding boxes overlap after drag completes",
+      "Every gateway node has at least two outgoing connections",
+      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)"
+    ]
+  }
+}

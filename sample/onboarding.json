@@ -1,0 +1,129 @@
+{
+  "title": "Employee Onboarding Process",
+  "description": "Improvement from paper-based onboarding to digital self-service",
+  "notes": "Process Owner: HR Operations\nLast Reviewed: 2024-Q1\nSLA Target: Day 1 ready",
+
+  "metrics": {
+    "before": { "stepCount": 8, "cycleTimeHours": 72, "handoffCount": 5, "errorRate": "~25%", "automationPct": 0, "costPerCase": 480 },
+    "after":  { "stepCount": 4, "cycleTimeHours": 8,  "handoffCount": 2, "errorRate": "~4%",  "automationPct": 60, "costPerCase": 85 }
+  },
+
+  "lanes": [
+    { "id": "employee", "label": "Employee", "color": "#1e3a5f", "height": 120 },
+    { "id": "hr",       "label": "HR",       "color": "#1a3a2a", "height": 120 },
+    { "id": "it",       "label": "IT",       "color": "#3a1a3a", "height": 120 },
+    { "id": "system",   "label": "System",   "color": "#2a2a1a", "height": 120 }
+  ],
+
+  "phases": [
+    { "id": "phase1", "label": "Digital Forms" },
+    { "id": "phase2", "label": "Auto Provisioning" }
+  ],
+
+  "nodes": [
+    { "id": "b-start",    "type": "start-event", "label": "Start",             "lane": "hr",       "x": 100,  "phase": "before" },
+    { "id": "b-forms",    "type": "task",         "label": "Paper\nForms",      "lane": "employee", "x": 220,  "phase": "before", "diff": "removed" },
+    { "id": "b-collect",  "type": "task",         "label": "Collect\nDocuments","lane": "hr",       "x": 380,  "phase": "before", "diff": "removed" },
+    { "id": "b-it-req",   "type": "task",         "label": "IT Access\nRequest","lane": "hr",       "x": 530,  "phase": "before", "diff": "removed" },
+    { "id": "b-provision","type": "task",         "label": "Manual\nProvision", "lane": "it",       "x": 680,  "phase": "before", "diff": "removed" },
+    { "id": "b-end",      "type": "end-event",    "label": "Ready",             "lane": "employee", "x": 820,  "phase": "before" },
+
+    { "id": "a-start",    "type": "start-event",  "label": "Start",             "lane": "hr",       "x": 100,  "phase": "after" },
+    { "id": "a-portal",   "type": "task",          "label": "Self-Service\nPortal","lane": "employee","x": 220, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-verify",   "type": "subprocess",    "label": "Auto\nVerify Docs", "lane": "system",   "x": 380,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-provision","type": "subprocess",    "label": "Auto\nProvision",   "lane": "system",   "x": 550,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-notify",   "type": "intermediate-event", "label": "Notify\nEmployee","lane": "system","x": 700, "phase": "after" },
+    { "id": "a-end",      "type": "end-event",     "label": "Day 1\nReady",      "lane": "employee", "x": 820,  "phase": "after" }
+  ],
+
+  "connections": [
+    { "id": "b-c1", "from": "b-start",    "to": "b-forms",    "type": "sequence", "phase": "before" },
+    { "id": "b-c2", "from": "b-forms",    "to": "b-collect",  "type": "message",  "phase": "before" },
+    { "id": "b-c3", "from": "b-collect",  "to": "b-it-req",   "type": "sequence", "phase": "before" },
+    { "id": "b-c4", "from": "b-it-req",   "to": "b-provision","type": "message",  "phase": "before" },
+    { "id": "b-c5", "from": "b-provision","to": "b-end",      "type": "message",  "phase": "before" },
+
+    { "id": "a-c1", "from": "a-start",    "to": "a-portal",   "type": "sequence", "phase": "after" },
+    { "id": "a-c2", "from": "a-portal",   "to": "a-verify",   "type": "message",  "phase": "after" },
+    { "id": "a-c3", "from": "a-verify",   "to": "a-provision","type": "sequence", "phase": "after" },
+    { "id": "a-c4", "from": "a-provision","to": "a-notify",   "type": "message",  "phase": "after" },
+    { "id": "a-c5", "from": "a-notify",   "to": "a-end",      "type": "sequence", "phase": "after" }
+  ],
+
+  "sequence": [
+    { "from": "a-start",    "to": "a-portal",   "text": "HR triggers onboarding",        "status": "ready" },
+    { "from": "a-portal",   "to": "a-verify",   "text": "Employee completes portal",     "status": "ready" },
+    { "from": "a-verify",   "to": "a-provision","text": "Documents verified — provisioning","status": "ready" },
+    { "from": "a-provision","to": "a-notify",   "text": "Access provisioned",            "status": "ready" },
+    { "from": "a-notify",   "to": "a-end",      "text": "Employee notified — Day 1 ready","status": "ready" }
+  ],
+
+  "spec": {
+    "schemaVersion": "1.0",
+    "description": "Before/after comparison of an employee onboarding process: paper-based manual onboarding (before) vs. digital self-service portal with automated document verification and system provisioning (after).",
+    "nodeInventory": [
+      { "id": "b-start",     "type": "start-event", "lane": "hr",       "phase": "before", "role": "HR triggers the manual onboarding process for a new hire",                                       "critical": true  },
+      { "id": "b-forms",     "type": "task",         "lane": "employee", "phase": "before", "role": "New employee manually completes paper forms — primary source of errors and delays",             "critical": true  },
+      { "id": "b-collect",   "type": "task",         "lane": "hr",       "phase": "before", "role": "HR manually collects and validates submitted paper documents",                                   "critical": true  },
+      { "id": "b-it-req",    "type": "task",         "lane": "hr",       "phase": "before", "role": "HR manually raises IT access request via email or ticket",                                      "critical": true  },
+      { "id": "b-provision", "type": "task",         "lane": "it",       "phase": "before", "role": "IT manually provisions accounts, hardware, and access rights",                                  "critical": true  },
+      { "id": "b-end",       "type": "end-event",    "lane": "employee", "phase": "before", "role": "Employee is ready — often delayed past Day 1 due to manual bottlenecks",                       "critical": false },
+      { "id": "a-start",     "type": "start-event",  "lane": "hr",       "phase": "after",  "role": "HR triggers digital onboarding workflow",                                                       "critical": true  },
+      { "id": "a-portal",    "type": "task",          "lane": "employee", "phase": "after",  "role": "Employee completes structured self-service portal — uploads documents and personal data",      "critical": true  },
+      { "id": "a-verify",    "type": "subprocess",    "lane": "system",   "phase": "after",  "role": "System automatically verifies uploaded documents against HR rules and compliance checks",     "critical": true  },
+      { "id": "a-provision", "type": "subprocess",    "lane": "system",   "phase": "after",  "role": "System automatically provisions AD accounts, email, hardware requests, and app access",      "critical": true  },
+      { "id": "a-notify",    "type": "intermediate-event", "lane": "system", "phase": "after", "role": "System fires notification to employee confirming readiness and Day 1 schedule",            "critical": false },
+      { "id": "a-end",       "type": "end-event",     "lane": "employee", "phase": "after",  "role": "Employee is Day 1 ready with all access and materials in place",                              "critical": false }
+    ],
+    "connectionInventory": [
+      { "id": "b-c1", "from": "b-start",     "to": "b-forms",     "semantics": "HR hands paper forms to new employee at start of onboarding" },
+      { "id": "b-c2", "from": "b-forms",     "to": "b-collect",   "semantics": "Employee returns completed paper forms to HR (cross-lane message)" },
+      { "id": "b-c3", "from": "b-collect",   "to": "b-it-req",    "semantics": "HR validates documents then raises IT access request" },
+      { "id": "b-c4", "from": "b-it-req",    "to": "b-provision", "semantics": "IT access request received by IT team (cross-lane message)" },
+      { "id": "b-c5", "from": "b-provision", "to": "b-end",       "semantics": "IT notifies HR that provisioning is complete (cross-lane message)" },
+      { "id": "a-c1", "from": "a-start",     "to": "a-portal",    "semantics": "HR triggers portal workflow; employee receives invitation link" },
+      { "id": "a-c2", "from": "a-portal",    "to": "a-verify",    "semantics": "Completed portal submission sent to auto-verify subprocess (cross-lane message)" },
+      { "id": "a-c3", "from": "a-verify",    "to": "a-provision", "semantics": "Documents verified — provisioning subprocess triggered automatically" },
+      { "id": "a-c4", "from": "a-provision", "to": "a-notify",    "semantics": "Provisioning complete — system fires notification intermediate event (cross-lane message)" },
+      { "id": "a-c5", "from": "a-notify",    "to": "a-end",       "semantics": "Employee receives confirmation and all access; onboarding complete" }
+    ],
+    "behaviors": [
+      {
+        "id": "beh-drag-snap",
+        "trigger": "User drags a node in edit mode",
+        "expectedOutcome": "Node snaps to nearest 20px grid position; connections re-route in real time",
+        "involvedNodes": ["b-provision", "a-provision"],
+        "testRef": "J6-S3"
+      },
+      {
+        "id": "beh-no-overlap",
+        "trigger": "User drags a node onto another node's bounding box",
+        "expectedOutcome": "Node resolves to nearest non-overlapping snapped position",
+        "involvedNodes": ["a-verify", "a-provision"],
+        "testRef": "J14-S5"
+      },
+      {
+        "id": "beh-simulation",
+        "trigger": "User clicks Simulate",
+        "expectedOutcome": "Token travels from a-start through a-portal, a-verify, a-provision, a-notify and terminates at a-end",
+        "involvedNodes": ["a-start", "a-portal", "a-verify", "a-provision", "a-notify", "a-end"],
+        "testRef": "J5-S1"
+      },
+      {
+        "id": "beh-label-edit",
+        "trigger": "User double-clicks a node in edit mode",
+        "expectedOutcome": "Inline text input appears; pressing Enter commits new label to SVG",
+        "involvedNodes": ["b-collect"],
+        "testRef": "J6-S7"
+      }
+    ],
+    "invariants": [
+      "Every before-phase path from b-start reaches b-end",
+      "Every after-phase path from a-start reaches a-end",
+      "No two nodes within the same lane share the same x coordinate",
+      "No two node bounding boxes overlap after drag completes",
+      "The after-phase contains no gateway nodes — all routing is linear through automated subprocesses",
+      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)"
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "title": "IT Incident Response",
+  "description": "Improvement from manual on-call paging to automated alerting with priority routing",
+  "notes": "Process Owner: IT Operations\nLast Reviewed: 2024-Q2\nSLA Target: MTTR < 30 min (after)\nEscalation: it-ops@company.com",
+
+  "metrics": {
+    "before": {
+      "stepCount": 6,
+      "mttrMinutes": 180,
+      "falsePositiveRate": "~30%",
+      "escalationRate": "~60%",
+      "automationPct": 0
+    },
+    "after": {
+      "stepCount": 4,
+      "mttrMinutes": 25,
+      "falsePositiveRate": "~5%",
+      "escalationRate": "~15%",
+      "automationPct": 75
+    }
+  },
+
+  "lanes": [
+    { "id": "monitor",     "label": "Monitoring System", "color": "#1e3a5f", "height": 130 },
+    { "id": "oncall",      "label": "On-Call Engineer",  "color": "#1a3a2a", "height": 130 },
+    { "id": "team",        "label": "Response Team",     "color": "#3a1a3a", "height": 130 },
+    { "id": "stakeholder", "label": "Stakeholders",      "color": "#2a2a1a", "height": 130 }
+  ],
+
+  "nodes": [
+    { "id": "b-start",    "type": "start-event",  "label": "Start",               "lane": "monitor",     "x": 80,  "phase": "before" },
+    { "id": "b-alert",    "type": "task",          "label": "Detect Alert",        "lane": "monitor",     "x": 200, "phase": "before", "diff": "removed" },
+    { "id": "b-page",     "type": "task",          "label": "Page Engineer\n(Manual)", "lane": "oncall", "x": 340, "phase": "before", "diff": "removed" },
+    { "id": "b-assess",   "type": "task",          "label": "Assess\nSeverity",    "lane": "oncall",      "x": 480, "phase": "before" },
+    { "id": "b-gateway",  "type": "gateway",       "label": "P1?",                 "lane": "oncall",      "x": 620, "phase": "before" },
+    { "id": "b-war-room", "type": "task",          "label": "Assemble\nWar Room",  "lane": "team",        "x": 760, "phase": "before" },
+    { "id": "b-resolve",  "type": "task",          "label": "Resolve\nIncident",   "lane": "oncall",      "x": 760, "phase": "before" },
+    { "id": "b-end",      "type": "end-event",     "label": "Resolved",            "lane": "oncall",      "x": 900, "phase": "before" },
+
+    { "id": "a-start",        "type": "start-event",        "label": "Start",                  "lane": "monitor",     "x": 80,  "phase": "after" },
+    { "id": "a-auto-detect",  "type": "task",               "label": "Auto-Detect\n& Classify", "lane": "monitor",    "x": 220, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-gateway-sev",  "type": "gateway",            "label": "Severity?",              "lane": "monitor",     "x": 380, "phase": "after" },
+    { "id": "a-page-p1",      "type": "task",               "label": "Page P1\nTeam",          "lane": "oncall",      "x": 520, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-war-room",     "type": "task",               "label": "War Room\nConvened",     "lane": "team",        "x": 660, "phase": "after" },
+    { "id": "a-notify",       "type": "intermediate-event", "label": "Notify\nStakeholders",   "lane": "stakeholder", "x": 660, "phase": "after" },
+    { "id": "a-resolve",      "type": "task",               "label": "Resolve\nIncident",      "lane": "oncall",      "x": 800, "phase": "after" },
+    { "id": "a-post-mortem",  "type": "task",               "label": "Post-Mortem",            "lane": "team",        "x": 940, "phase": "after" },
+    { "id": "a-end",          "type": "end-event",          "label": "Closed",                 "lane": "oncall",      "x": 1060, "phase": "after" }
+  ],
+
+  "connections": [
+    { "id": "b-c1", "from": "b-start",    "to": "b-alert",    "type": "sequence",    "phase": "before" },
+    { "id": "b-c2", "from": "b-alert",    "to": "b-page",     "type": "message",     "phase": "before" },
+    { "id": "b-c3", "from": "b-page",     "to": "b-assess",   "type": "sequence",    "phase": "before" },
+    { "id": "b-c4", "from": "b-assess",   "to": "b-gateway",  "type": "sequence",    "phase": "before" },
+    { "id": "b-c5", "from": "b-gateway",  "to": "b-war-room", "type": "sequence",    "phase": "before", "decision": "yes", "label": "P1" },
+    { "id": "b-c6", "from": "b-gateway",  "to": "b-resolve",  "type": "sequence",    "phase": "before", "decision": "no",  "label": "P2/P3" },
+    { "id": "b-c7", "from": "b-war-room", "to": "b-resolve",  "type": "sequence",    "phase": "before" },
+    { "id": "b-c8", "from": "b-resolve",  "to": "b-end",      "type": "sequence",    "phase": "before" },
+
+    { "id": "a-c1", "from": "a-start",       "to": "a-auto-detect", "type": "sequence", "phase": "after" },
+    { "id": "a-c2", "from": "a-auto-detect", "to": "a-gateway-sev", "type": "sequence", "phase": "after" },
+    { "id": "a-c3", "from": "a-gateway-sev", "to": "a-page-p1",     "type": "sequence", "phase": "after", "decision": "yes", "label": "P1" },
+    { "id": "a-c4", "from": "a-page-p1",     "to": "a-war-room",    "type": "sequence", "phase": "after" },
+    { "id": "a-c5", "from": "a-war-room",    "to": "a-notify",      "type": "message",  "phase": "after" },
+    { "id": "a-c6", "from": "a-war-room",    "to": "a-resolve",     "type": "sequence", "phase": "after" },
+    { "id": "a-c7", "from": "a-resolve",     "to": "a-post-mortem", "type": "sequence", "phase": "after" },
+    { "id": "a-c8", "from": "a-post-mortem", "to": "a-end",         "type": "sequence", "phase": "after" },
+    { "id": "a-c9", "from": "a-gateway-sev", "to": "a-resolve",     "type": "sequence", "phase": "after", "decision": "no", "label": "P2/P3" }
+  ],
+
+  "sequence": [
+    { "from": "a-start",       "to": "a-auto-detect", "text": "Monitor detects anomaly",      "status": "ready" },
+    { "from": "a-auto-detect", "to": "a-gateway-sev", "text": "Classified as P1 — Critical",  "status": "wip",
+      "popup": { "type": "issue", "msg": "P1 Critical: 95% confidence" } },
+    { "from": "a-gateway-sev", "to": "a-page-p1",     "text": "Auto-paging P1 team",          "status": "ready" },
+    { "from": "a-page-p1",     "to": "a-war-room",    "text": "War room convened in 3min",    "status": "ready" },
+    { "from": "a-war-room",    "to": "a-resolve",     "text": "Incident being resolved",      "status": "wip" },
+    { "from": "a-resolve",     "to": "a-post-mortem", "text": "Resolved — scheduling review", "status": "ready",
+      "popup": { "type": "amplify", "msg": "MTTR: 25 minutes" } }
+  ],
+
+  "spec": {
+    "schemaVersion": "1.0",
+    "description": "IT incident response: manual on-call paging (before) vs. automated severity-based alerting with structured war-room process (after).",
+    "nodeInventory": [
+      { "id": "b-start",    "type": "start-event", "lane": "monitor",     "phase": "before", "role": "Triggers the before-state incident response process",                        "critical": true  },
+      { "id": "b-alert",    "type": "task",         "lane": "monitor",     "phase": "before", "role": "Engineer manually reviews monitoring dashboard to detect alert",              "critical": true  },
+      { "id": "b-page",     "type": "task",         "lane": "oncall",      "phase": "before", "role": "On-call manually paged via phone or email — prone to delays",               "critical": true  },
+      { "id": "b-assess",   "type": "task",         "lane": "oncall",      "phase": "before", "role": "Engineer manually assesses severity without tooling support",                "critical": true  },
+      { "id": "b-gateway",  "type": "gateway",      "lane": "oncall",      "phase": "before", "role": "Decision split: P1 triggers war room, P2/P3 handled by on-call alone",      "critical": true  },
+      { "id": "b-war-room", "type": "task",         "lane": "team",        "phase": "before", "role": "Response team assembled manually for P1 critical incidents",                 "critical": false },
+      { "id": "b-resolve",  "type": "task",         "lane": "oncall",      "phase": "before", "role": "Incident resolved by on-call with or without war room support",              "critical": true  },
+      { "id": "b-end",      "type": "end-event",    "lane": "oncall",      "phase": "before", "role": "Incident marked resolved — no structured follow-up",                         "critical": false },
+      { "id": "a-start",       "type": "start-event",        "lane": "monitor",     "phase": "after", "role": "Triggers the after-state automated incident response process",         "critical": true  },
+      { "id": "a-auto-detect", "type": "task",               "lane": "monitor",     "phase": "after", "role": "ML-based anomaly detection and automatic severity classification",      "critical": true  },
+      { "id": "a-gateway-sev", "type": "gateway",            "lane": "monitor",     "phase": "after", "role": "Routes P1 to war room path, P2/P3 direct to on-call resolution",       "critical": true  },
+      { "id": "a-page-p1",     "type": "task",               "lane": "oncall",      "phase": "after", "role": "Automated paging of P1 response team via PagerDuty integration",       "critical": true  },
+      { "id": "a-war-room",    "type": "task",               "lane": "team",        "phase": "after", "role": "Response team convened automatically in incident channel",              "critical": true  },
+      { "id": "a-notify",      "type": "intermediate-event", "lane": "stakeholder", "phase": "after", "role": "Automated status notification broadcast to stakeholders",               "critical": false },
+      { "id": "a-resolve",     "type": "task",               "lane": "oncall",      "phase": "after", "role": "Incident resolved with full tooling and team support",                 "critical": true  },
+      { "id": "a-post-mortem", "type": "task",               "lane": "team",        "phase": "after", "role": "Structured blameless post-mortem scheduled and conducted",             "critical": true  },
+      { "id": "a-end",         "type": "end-event",          "lane": "oncall",      "phase": "after", "role": "Incident closed with full audit trail and post-mortem artefacts",       "critical": false }
+    ],
+    "connectionInventory": [
+      { "id": "b-c1", "from": "b-start",    "to": "b-alert",    "semantics": "Monitoring system begins — engineer watches dashboard" },
+      { "id": "b-c2", "from": "b-alert",    "to": "b-page",     "semantics": "Alert identified — on-call paged manually via phone/email" },
+      { "id": "b-c3", "from": "b-page",     "to": "b-assess",   "semantics": "On-call engineer receives page and begins assessment" },
+      { "id": "b-c4", "from": "b-assess",   "to": "b-gateway",  "semantics": "Severity assessment complete — routed to priority gateway" },
+      { "id": "b-c5", "from": "b-gateway",  "to": "b-war-room", "semantics": "P1 critical — war room assembled", "conditions": "Severity classified as P1" },
+      { "id": "b-c6", "from": "b-gateway",  "to": "b-resolve",  "semantics": "P2/P3 — on-call handles directly", "conditions": "Severity classified as P2 or P3" },
+      { "id": "b-c7", "from": "b-war-room", "to": "b-resolve",  "semantics": "War room feeds into resolution effort" },
+      { "id": "b-c8", "from": "b-resolve",  "to": "b-end",      "semantics": "Incident resolved — process terminates" },
+      { "id": "a-c1", "from": "a-start",       "to": "a-auto-detect", "semantics": "Automated monitoring begins continuous anomaly scanning" },
+      { "id": "a-c2", "from": "a-auto-detect", "to": "a-gateway-sev", "semantics": "ML classifier assigns severity and confidence score" },
+      { "id": "a-c3", "from": "a-gateway-sev", "to": "a-page-p1",     "semantics": "P1 detected — automated paging triggered immediately", "conditions": "Severity = P1" },
+      { "id": "a-c4", "from": "a-page-p1",     "to": "a-war-room",    "semantics": "P1 team paged — war room channel auto-created" },
+      { "id": "a-c5", "from": "a-war-room",    "to": "a-notify",      "semantics": "War room active — stakeholders automatically notified" },
+      { "id": "a-c6", "from": "a-war-room",    "to": "a-resolve",     "semantics": "War room drives resolution activity" },
+      { "id": "a-c7", "from": "a-resolve",     "to": "a-post-mortem", "semantics": "Incident resolved — post-mortem automatically scheduled" },
+      { "id": "a-c8", "from": "a-post-mortem", "to": "a-end",         "semantics": "Post-mortem complete — incident formally closed" },
+      { "id": "a-c9", "from": "a-gateway-sev", "to": "a-resolve",     "semantics": "P2/P3 routed directly to resolution — no war room needed", "conditions": "Severity = P2 or P3" }
+    ],
+    "behaviors": [
+      {
+        "id": "beh-severity-routing",
+        "trigger": "Monitor detects anomaly",
+        "expectedOutcome": "Auto-classifier routes P1 to war room, P2/P3 direct to on-call",
+        "involvedNodes": ["a-auto-detect", "a-gateway-sev"],
+        "testRef": "J5-S1"
+      },
+      {
+        "id": "beh-no-overlap",
+        "trigger": "User drags a-resolve onto a-post-mortem position",
+        "expectedOutcome": "Drag resolves to nearest free grid cell",
+        "involvedNodes": ["a-resolve", "a-post-mortem"],
+        "testRef": "J14-S5"
+      }
+    ],
+    "invariants": [
+      "Every path from start eventually reaches Closed end-event",
+      "P1 path always involves war room convening",
+      "No two node bounding boxes overlap",
+      "All node x coordinates are multiples of 20"
+    ]
+  }
+}

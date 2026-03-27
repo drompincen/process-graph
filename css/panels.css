@@ -1,0 +1,370 @@
+/* panels.css — metrics panel, KPI HUD, benefits cards, node palette */
+
+/* ── Node palette sidebar ──────────────────────────────────────────────── */
+
+#node-palette {
+  width: 150px;
+  flex-shrink: 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-mid);
+  padding: 10px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 50;
+}
+
+#node-palette h3 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-mid);
+  font-size: 11px;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.palette-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item svg {
+  flex-shrink: 0;
+}
+
+#metrics-panel {
+  position: absolute;
+  bottom: 48px; right: 16px;
+  width: 340px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  z-index: 50;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+#kpi-hud {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 200px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  z-index: 12;
+  font-size: 11px;
+}
+
+#benefits-panel {
+  position: absolute;
+  right: 16px; top: 60px;
+  width: 220px;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+}
+
+/* ── Benefit cards ──────────────────────────────────────────────────────── */
+
+.benefit-card {
+  background: #1a2035;
+  border: 1px solid #2d3a55;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.benefit-card:hover {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px #60a5fa40, 0 4px 16px rgba(0,0,0,0.5);
+}
+
+/* ── Benefit badge ──────────────────────────────────────────────────────── */
+
+.benefit-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.benefit-realized {
+  background: #14532d;
+  color: #86efac;
+  border: 1px solid #166534;
+}
+
+.benefit-pending {
+  background: #451a03;
+  color: #fcd34d;
+  border: 1px solid #78350f;
+}
+
+/* ── Node highlight (applied to SVG <g> on benefit card hover) ──────────── */
+
+.benefit-highlight {
+  filter: drop-shadow(0 0 6px #34d399) drop-shadow(0 0 2px #34d39980);
+  opacity: 1 !important;
+}
+
+/* ── Property editor panel (right sidebar) ─────────────────────────────── */
+
+.panel-right {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-mid);
+  overflow-y: auto;
+  font-size: 12px;
+  z-index: 50;
+}
+
+/* 9.11 — Consistent 36px panel header height */
+.prop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.prop-header h3 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.prop-header button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.prop-header button:hover { color: var(--text-main); }
+
+.prop-group {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.prop-group label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 3px;
+  margin-top: 6px;
+}
+
+.prop-group label:first-child { margin-top: 0; }
+
+.prop-group input[type="text"],
+.prop-group textarea,
+.prop-group select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.prop-group input[type="text"]:focus,
+.prop-group textarea:focus,
+.prop-group select:focus {
+  border-color: var(--accent);
+}
+
+.prop-group textarea {
+  resize: vertical;
+  min-height: 48px;
+  line-height: 1.4;
+}
+
+.prop-group select {
+  cursor: pointer;
+}
+
+.prop-type-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  color: var(--text-mid);
+  margin-bottom: 4px;
+}
+
+/* ── Version panel ────────────────────────────────────────────────────── */
+
+#version-panel {
+  flex-direction: column;
+}
+
+.version-save-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.version-save-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.version-save-row input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+.version-save-row button {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.version-save-row button:hover {
+  opacity: 0.85;
+}
+
+#version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.version-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  transition: background 0.12s;
+}
+
+.version-item:hover {
+  background: var(--bg-elevated);
+}
+
+.version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.version-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.version-time {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.version-restore-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-mid);
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.version-restore-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.version-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ── Selected node/connection highlight ───────────────────────────────── */
+
+.node-selected {
+  filter: drop-shadow(0 0 6px #3b82f6) drop-shadow(0 0 2px #3b82f680);
+}
+
+.conn-selected {
+  stroke: #3b82f6 !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px #3b82f6);
+}

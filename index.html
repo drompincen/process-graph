@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process Graph</title>
+<link rel="stylesheet" href="css/core.css">
+<link rel="stylesheet" href="css/diagram.css">
+<link rel="stylesheet" href="css/diff.css">
+<link rel="stylesheet" href="css/animation.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/narrative.css">
+<link rel="stylesheet" href="css/widgets.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════════════════════════ -->
+<header id="header">
+  <div class="controls-left">
+    <span class="brand">⬡ PROCESS GRAPH</span>
+    <div class="h-divider"></div>
+
+    <select id="json-selector" title="Load diagram"></select>
+
+    <div class="h-divider"></div>
+
+    <!-- View mode buttons -->
+    <div id="view-mode-group" role="group">
+      <button id="btn-before"  class="view-btn" data-mode="before">Before</button>
+      <button id="btn-split"   class="view-btn active" data-mode="split">Split</button>
+      <button id="btn-after"   class="view-btn" data-mode="after">After</button>
+      <button id="btn-overlay" class="view-btn" data-mode="overlay">Overlay</button>
+    </div>
+
+    <div class="h-divider"></div>
+
+    <!-- Phase dots injected here by diff.js -->
+    <div id="phase-dots"></div>
+
+    <!-- Flow selector (shown when graph.flows present) -->
+    <select id="flow-selector" style="display:none" title="Select process path"></select>
+  </div>
+
+  <div class="controls-right">
+    <!-- Simulation controls -->
+    <button id="btn-play" title="Simulate process">▶ Simulate</button>
+    <button id="btn-next" title="Next step" disabled>›</button>
+    <button id="btn-ff"   title="Fast forward" disabled>»</button>
+    <button id="btn-time-sim" title="Time-based simulation">⏱ Time Sim</button>
+    <button id="btn-agent-sim" title="Agent-based simulation">👥 Agent Sim</button>
+    <span id="sim-clock" class="sim-clock" style="display:none">00:00</span>
+    <span id="sim-speed-group" style="display:none">
+      <button class="speed-btn" data-speed="1">1x</button>
+      <button class="speed-btn active" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="5">5x</button>
+      <button class="speed-btn" data-speed="10">10x</button>
+    </span>
+
+    <div class="h-divider"></div>
+
+    <!-- Zoom presets -->
+    <div id="zoom-group" role="group" title="Diagram width preset">
+      <button id="btn-zoom-fit" class="zoom-btn active" data-zoom="fit"  title="Fit to window">Fit</button>
+      <button id="btn-zoom-hd"  class="zoom-btn"        data-zoom="1080p" title="1920 px wide (HD)">HD</button>
+      <button id="btn-zoom-4k"  class="zoom-btn"        data-zoom="4k"   title="3840 px wide (4K)">4K</button>
+    </div>
+
+    <div class="h-divider"></div>
+
+    <!-- Story mode (shown when graph.story present) -->
+    <button id="btn-story" style="display:none" title="Open story mode">📖 Story</button>
+
+    <div class="h-divider"></div>
+
+    <!-- Node palette toggle (edit mode) -->
+    <button id="btn-toggle-palette" style="display:none" title="Toggle node palette">+ Nodes</button>
+
+    <!-- Auto-layout (edit mode) -->
+    <button id="btn-auto-layout" style="display:none" title="Auto-arrange nodes">⊞ Layout</button>
+
+    <div class="h-divider"></div>
+
+    <!-- KPI overlay toggle -->
+    <button id="btn-kpi-overlay" title="Toggle KPI overlays">KPI</button>
+
+    <div class="h-divider"></div>
+
+    <!-- Validate button -->
+    <button id="btn-validate" title="Validate process">&#x2713; Validate</button>
+
+    <!-- Versions button -->
+    <button id="btn-versions" title="Save/restore diagram versions">Versions</button>
+
+    <div class="h-divider"></div>
+
+    <!-- Options dropdown -->
+    <div class="dropdown" id="options-dropdown">
+      <button id="btn-options">⚙ Options ▾</button>
+      <div class="dropdown-menu" id="options-menu">
+        <label class="menu-item"><input type="checkbox" id="chk-edit-mode"> Edit Mode</label>
+        <label class="menu-item"><input type="checkbox" id="chk-show-editor"> JSON Editor</label>
+        <label class="menu-item"><input type="checkbox" id="chk-show-notes"> Notes</label>
+        <label class="menu-item"><input type="checkbox" id="chk-show-metrics"> Metrics Panel</label>
+        <label class="menu-item"><input type="checkbox" id="chk-show-kpis"> KPI HUD</label>
+        <label class="menu-item"><input type="checkbox" id="chk-show-benefits"> Benefits</label>
+        <hr class="menu-sep">
+        <label class="menu-item"><input type="checkbox" id="chk-sequence-view"> Sequence View</label>
+        <hr class="menu-sep">
+        <button class="menu-btn" id="btn-upload-json">📀 Upload JSON</button>
+        <button class="menu-btn" id="btn-download-json">📥 Download JSON</button>
+        <button class="menu-btn" id="btn-export-svg">🖼 Export SVG</button>
+        <button class="menu-btn" id="btn-export-png">🖼 Export PNG</button>
+        <button class="menu-btn" id="btn-export-pdf">📄 Export PDF</button>
+        <hr class="menu-sep">
+        <label class="menu-item"><input type="checkbox" id="chk-pause-step"> Pause / Step</label>
+        <label class="menu-item delay-row">
+          Delay: <input type="range" id="delay-slider" min="0.3" max="3" step="0.1" value="1">
+          <span id="delay-label">1.0s</span>
+        </label>
+        <hr class="menu-sep">
+        <label class="menu-item"><input type="checkbox" id="chk-light-mode">☀ Light Theme</label>
+        <hr class="menu-sep">
+        <div class="menu-item" style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:11px;color:#94a3b8;">Arrow Style</span>
+          <label style="font-size:11px;"><input type="radio" name="arrow-style" id="radio-arrow-orthogonal" checked> Orthogonal</label>
+          <label style="font-size:11px;"><input type="radio" name="arrow-style" id="radio-arrow-curved"> Curved</label>
+        </div>
+        <label class="menu-item"><input type="checkbox" id="chk-flow-animation"> Flow Animation</label>
+        <hr class="menu-sep">
+        <div class="font-size-row">
+          <span>Slide font</span>
+          <button id="btn-font-smaller">A−</button>
+          <button id="btn-font-larger">A+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN LAYOUT
+     ═══════════════════════════════════════════════════════════ -->
+<div id="app-body">
+
+  <!-- LEFT: Node Palette (edit mode only, hidden by default) -->
+  <aside id="node-palette" class="palette" style="display:none">
+    <h3>Nodes</h3>
+    <div class="palette-item" data-type="task" draggable="true">
+      <svg width="24" height="16" viewBox="0 0 24 16"><rect rx="4" width="24" height="16" fill="#2a3550" stroke="#4a9eff" stroke-width="1"/></svg>
+      <span>Task</span>
+    </div>
+    <div class="palette-item" data-type="gateway" draggable="true">
+      <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,0 20,10 10,20 0,10" fill="#2a3550" stroke="#f59e0b" stroke-width="1"/></svg>
+      <span>Decision</span>
+    </div>
+    <div class="palette-item" data-type="merge" draggable="true">
+      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#2a3550" stroke="#94a3b8" stroke-width="1"/></svg>
+      <span>Merge</span>
+    </div>
+    <div class="palette-item" data-type="process-group" draggable="true">
+      <svg width="28" height="20" viewBox="0 0 28 20"><rect rx="2" width="28" height="20" fill="none" stroke="#4a9eff" stroke-width="1" stroke-dasharray="4"/></svg>
+      <span>Group</span>
+    </div>
+    <div class="palette-item" data-type="start-event" draggable="true">
+      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e" stroke="#16a34a" stroke-width="1.5"/></svg>
+      <span>Start</span>
+    </div>
+    <div class="palette-item" data-type="end-event" draggable="true">
+      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#ef4444" stroke="#dc2626" stroke-width="2"/></svg>
+      <span>End</span>
+    </div>
+    <div class="palette-item" data-type="subprocess" draggable="true">
+      <svg width="24" height="16" viewBox="0 0 24 16"><rect rx="4" width="24" height="16" fill="#2a3550" stroke="#4a9eff" stroke-width="1"/><text x="12" y="12" text-anchor="middle" font-size="9" fill="#94a3b8">+</text></svg>
+      <span>Subprocess</span>
+    </div>
+    <div class="palette-item" data-type="intermediate-event" draggable="true">
+      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#4a9eff" stroke-width="1.5"/><circle cx="8" cy="8" r="5" fill="none" stroke="#4a9eff" stroke-width="0.8"/></svg>
+      <span>Intermediate</span>
+    </div>
+  </aside>
+
+  <!-- LEFT: JSON Editor (hidden by default) -->
+  <aside id="editor-pane" style="display:none">
+    <div id="editor-toolbar">
+      <button id="btn-update">Update Diagram</button>
+      <span id="editor-error"></span>
+    </div>
+    <textarea id="json-editor" spellcheck="false" autocomplete="off"></textarea>
+  </aside>
+
+  <!-- CENTER: Diagram / Sequence (one visible at a time) -->
+  <main id="stage">
+
+    <!-- SVG diagram canvas -->
+    <div id="svg-container">
+      <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs id="svg-defs"></defs>
+        <g id="background-layer"></g>
+        <g id="lanes-layer"></g>
+        <g id="connections-layer"></g>
+        <g id="nodes-layer"></g>
+        <g id="annotations-layer"></g>
+        <g id="overlays-layer"></g>
+        <g id="token-layer"></g>
+      </svg>
+    </div>
+
+    <!-- Sequence view (hidden by default) -->
+    <div id="sequence-container" style="display:none">
+      <svg id="sequence-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <!-- Floating widgets (positioned absolute within #stage) -->
+    <div id="kpi-hud"        style="display:none"></div>
+    <div id="metrics-panel"  style="display:none"></div>
+    <div id="benefits-panel" style="display:none"></div>
+    <div id="notebook"       style="display:none">
+      <div class="notebook-header">Notes</div>
+      <pre id="notebook-text"></pre>
+    </div>
+
+  </main>
+
+  <!-- RIGHT: Property Editor Panel (shown when a single node is selected in edit mode) -->
+  <aside id="property-panel" class="panel-right" style="display:none">
+    <div class="prop-header">
+      <h3>Properties</h3>
+      <button id="prop-panel-close" title="Close">&times;</button>
+    </div>
+    <div id="prop-fields"></div>
+  </aside>
+
+  <!-- RIGHT: Version Panel (toggled via header button) -->
+  <aside id="version-panel" class="panel-right" style="display:none">
+    <div class="prop-header">
+      <h3>Versions</h3>
+    </div>
+    <div class="version-save-row">
+      <input id="version-name-input" placeholder="Version name" />
+      <button id="btn-save-version">Save</button>
+    </div>
+    <ul id="version-list"></ul>
+  </aside>
+
+</div>
+
+<!-- Context menu (positioned absolutely, hidden by default) -->
+<div id="context-menu" style="display:none"></div>
+
+<!-- NARRATIVE VIEW (full-page overlay, hidden by default) -->
+<div id="narrative-view" style="display:none">
+  <div id="narrative-main">
+    <div id="slide-container"></div>
+    <div id="slide-nav-dots"></div>
+    <div id="narrative-font-controls">
+      <button id="btn-narrative-font-smaller">A−</button>
+      <button id="btn-narrative-font-larger">A+</button>
+    </div>
+  </div>
+  <div id="narrative-sidebar">
+    <div id="narrative-benefits"></div>
+    <div id="narrative-kpi-hud"></div>
+  </div>
+  <button id="btn-back-to-story" style="display:none">← Back to Story</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     VALIDATION PANEL
+     ═══════════════════════════════════════════════════════════ -->
+<div id="validation-panel" class="panel-bottom" style="display:none">
+  <div class="validation-header">
+    <span class="validation-title">Validation Results</span>
+    <span id="validation-count" class="badge">0 issues</span>
+    <label class="validation-loop-toggle"><input type="checkbox" id="chk-allow-loops"> Allow loops</label>
+    <label class="validation-loop-toggle"><input type="checkbox" id="chk-allow-d2d"> Allow decision-to-decision</label>
+    <button id="btn-close-validation" title="Close">&times;</button>
+  </div>
+  <ul id="validation-list"></ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOG PANE
+     ═══════════════════════════════════════════════════════════ -->
+<div id="pane-resizer"></div>
+<div id="log-pane">
+  <div id="log-entries">
+    <div class="log-ready">Ready — load a diagram and click Simulate</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     EXPORT PDF MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div id="modal-export-pdf" class="modal" style="display:none">
+  <div class="modal-card">
+    <h3>Export PDF</h3>
+    <label class="modal-opt"><input type="radio" name="pdf-mode" value="diagram" checked> Diagram only</label>
+    <label class="modal-opt"><input type="radio" name="pdf-mode" value="sequence"> Sequence view only</label>
+    <label class="modal-opt"><input type="radio" name="pdf-mode" value="both"> Both (stacked)</label>
+    <div class="modal-actions">
+      <button id="btn-pdf-cancel">Cancel</button>
+      <button id="btn-pdf-confirm" class="btn-primary">Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MINIMAP + ZOOM INDICATOR
+     ═══════════════════════════════════════════════════════════ -->
+<div id="minimap">
+  <canvas id="minimap-canvas" width="200" height="150"></canvas>
+</div>
+<div id="zoom-pct-label">100%</div>
+
+<!-- Hidden file input -->
+<input type="file" id="file-input" accept=".json" style="display:none">
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIMULATION SUMMARY OVERLAY
+     ═══════════════════════════════════════════════════════════ -->
+<div id="sim-overlay" class="sim-overlay" style="display:none"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ENTRY POINT
+     ═══════════════════════════════════════════════════════════ -->
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>

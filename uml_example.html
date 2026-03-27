@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UML Process Example</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f1117;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 40px 20px;
+  }
+  h1 { color: #e2e8f0; font-size: 1.1rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; opacity: 0.7; }
+  .subtitle { color: #64748b; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 32px; }
+  #diagram-wrap { background: #161b27; border: 1px solid #1e2535; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6); max-width: 100%; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<h1>Online Order Process</h1>
+<div class="subtitle">Swimlane Diagram &nbsp;·&nbsp; Orthogonal Routing &nbsp;·&nbsp; Message Flows</div>
+<div id="diagram-wrap">
+<!--
+  COORDINATE MAP
+  ══════════════════════════════════════════════════════════
+  SVG: 920 × 400
+
+  Header:   y=0–48
+  Lane 0 (Customer):   y=48–188   center y=118
+  Lane 1 (Kitchen):    y=188–328  center y=258
+  Metrics:  y=328–360
+
+  Label column: x=0–44 (rotated text at cx=22)
+  Content starts: x=55
+
+  NODES
+  ──────────────────────────────────────────────────────────
+  C-Start       circle  cx=75  cy=118 r=12      right=87
+  C-Browse      rect(100,98,100,40) cx=150 cy=118 right=200 bottom=138
+  C-PlaceOrder  rect(230,98,110,40) cx=285 cy=118 right=340 bottom=138
+  C-Receive     rect(580,98,110,40) cx=635 cy=118 left=580 right=690 bottom=138
+  C-End         circle  cx=820 cy=118 r=14      left=806
+
+  K-Accept      rect(230,238,110,40) cx=285 cy=258 top=238
+  K-Prepare     rect(380,238,100,40) cx=430 cy=258 right=480 bottom=278 top=238
+  K-Ready       diamond cx=565 cy=258  hw=35 hh=25
+                  top=(565,233) right=(600,258) bot=(565,283) left=(530,258)
+  K-Pack        rect(625,238,100,40) cx=675 cy=258 top=238 right=725
+
+  CONNECTIONS
+  ──────────────────────────────────────────────────────────
+  Seq (solid #475569):
+    C1  Start→Browse         horiz    (87,118)→(100,118)
+    C2  Browse→PlaceOrder    horiz    (200,118)→(230,118)
+    C4  Accept→Prepare       horiz    (340,258)→(380,258)
+    C5  Prepare→Ready        horiz    (480,258)→(530,258)
+    C6  Ready YES→Pack       horiz    (600,258)→(625,258)
+    C9  Receive→End          horiz    (690,118)→(806,118)
+
+  Msg (dashed #60a5fa):
+    C3  PlaceOrder→Accept    vert down  x=285 (138)→(238)
+    C8  Pack→Receive         elbow up   (675,238)→(675,168)→(635,168)→(635,138)
+
+  Loop-back (dashed #f59e0b):
+    C7  Ready NO→Prepare     elbow down (565,283)→(565,308)→(430,308)→(430,278)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360">
+<defs>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.5"/>
+  </filter>
+  <linearGradient id="lg0" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1e3a5f" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.1"/>
+  </linearGradient>
+  <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1a3a2a" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.1"/>
+  </linearGradient>
+  <linearGradient id="nf-task" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#2d3a52"/>
+    <stop offset="100%" stop-color="#1e2a3e"/>
+  </linearGradient>
+  <linearGradient id="nf-term" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#232d40"/>
+    <stop offset="100%" stop-color="#161b27"/>
+  </linearGradient>
+  <linearGradient id="nf-dec" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3a3020"/>
+    <stop offset="100%" stop-color="#2a2215"/>
+  </linearGradient>
+  <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+    <circle cx="12" cy="12" r="0.7" fill="rgba(255,255,255,0.04)"/>
+  </pattern>
+</defs>
+
+<!-- ── Background ────────────────────────────────────────── -->
+<rect width="920" height="360" fill="#161b27"/>
+<rect width="920" height="360" fill="url(#grid)"/>
+
+<!-- ── Swimlane bands ─────────────────────────────────────── -->
+<rect x="0" y="48"  width="920" height="140" fill="url(#lg0)"/>
+<rect x="0" y="188" width="920" height="140" fill="url(#lg1)"/>
+
+<!-- Lane border lines -->
+<line x1="0" y1="48"  x2="920" y2="48"  stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="188" x2="920" y2="188" stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="328" x2="920" y2="328" stroke="#1e2535" stroke-width="1"/>
+
+<!-- Label column separator (dashed) -->
+<line x1="44" y1="48" x2="44" y2="328" stroke="#1e2535" stroke-width="1" stroke-dasharray="2,4" opacity="0.5"/>
+
+<!-- Rotated lane labels — same style as preview.html but vertical -->
+<text transform="rotate(-90 22 118)"
+      font-family="'Segoe UI',sans-serif" font-size="9" fill="#94a3b8"
+      text-anchor="middle" letter-spacing="0.12em" font-weight="600" opacity="0.7">CUSTOMER</text>
+<text transform="rotate(-90 22 258)"
+      font-family="'Segoe UI',sans-serif" font-size="9" fill="#94a3b8"
+      text-anchor="middle" letter-spacing="0.12em" font-weight="600" opacity="0.7">KITCHEN</text>
+
+<!-- ── Header ────────────────────────────────────────────── -->
+<rect x="0" y="0" width="920" height="48" fill="#0d1120"/>
+<text x="460" y="29" font-family="'Segoe UI',sans-serif" font-size="11"
+      fill="#64748b" text-anchor="middle" letter-spacing="0.16em" font-weight="700">ONLINE ORDER PROCESS</text>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LAYER 1 — CONNECTION LINES
+     All sequence flows use orthogonal (L-shaped) routing.
+     Paths end at arrowhead TAIL; explicit polygon in Layer 3.
+
+     Arrowhead dimensions: 9px long, 8px wide (±4)
+       right → tail x-9, tip x      "tx-9,ty-4  tx-9,ty+4  tx,ty"
+       down  → tail y-9, tip y      "tx-4,ty-9  tx+4,ty-9  tx,ty"
+       up    → tail y+9, tip y      "tx-4,ty+9  tx+4,ty+9  tx,ty"
+     ══════════════════════════════════════════════════════════ -->
+
+<!-- C1  Start→Browse   horiz solid -->
+<line x1="87" y1="118" x2="91" y2="118" stroke="#475569" stroke-width="1.8"/>
+
+<!-- C2  Browse→PlaceOrder   horiz solid -->
+<line x1="200" y1="118" x2="221" y2="118" stroke="#475569" stroke-width="1.8"/>
+
+<!-- C3  PlaceOrder→Accept   vert down DASHED message flow -->
+<line x1="285" y1="138" x2="285" y2="229" stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.9"/>
+
+<!-- C4  Accept→Prepare   horiz solid -->
+<line x1="340" y1="258" x2="371" y2="258" stroke="#475569" stroke-width="1.8"/>
+
+<!-- C5  Prepare→Ready   horiz solid -->
+<line x1="480" y1="258" x2="521" y2="258" stroke="#475569" stroke-width="1.8"/>
+
+<!-- C6  Ready YES→Pack   horiz solid -->
+<line x1="600" y1="258" x2="616" y2="258" stroke="#475569" stroke-width="1.8"/>
+
+<!-- C7  Ready NO→Prepare loop-back   orthogonal DASHED amber
+         Diamond bottom (565,283) → down to y=308 → left to x=430 → up to Prepare bottom (430,278) -->
+<path d="M 565,283 L 565,308 L 430,308 L 430,287"
+      stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="4,3" fill="none" opacity="0.9"/>
+
+<!-- C8  Pack→Receive   elbow up DASHED message flow
+         Pack top (675,238) → up to y=168 → left to x=635 → up to Receive bottom (635,138) -->
+<path d="M 675,238 L 675,168 L 635,168 L 635,147"
+      stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="5,4" fill="none" opacity="0.9"/>
+
+<!-- C9  Receive→End   horiz solid -->
+<line x1="690" y1="118" x2="797" y2="118" stroke="#475569" stroke-width="1.8"/>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LAYER 2 — NODES  (drawn over connection lines)
+     ══════════════════════════════════════════════════════════ -->
+
+<!-- C-Start: hollow circle with inner dot (BPMN start event) -->
+<g filter="url(#sh)">
+  <circle cx="75" cy="118" r="12" fill="url(#nf-term)" stroke="#475569" stroke-width="2"/>
+  <circle cx="75" cy="118" r="4"  fill="#64748b"/>
+</g>
+
+<!-- C-Browse Menu -->
+<g filter="url(#sh)">
+  <rect x="100" y="98" width="100" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="150" y="113" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Browse</text>
+  <text x="150" y="127" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Menu</text>
+</g>
+
+<!-- C-Place Order -->
+<g filter="url(#sh)">
+  <rect x="230" y="98" width="110" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="285" y="113" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Place</text>
+  <text x="285" y="127" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Order</text>
+</g>
+
+<!-- C-Receive Order -->
+<g filter="url(#sh)">
+  <rect x="580" y="98" width="110" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="635" y="113" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Receive</text>
+  <text x="635" y="127" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Order</text>
+</g>
+
+<!-- C-End: thick-bordered circle (BPMN end event) -->
+<g filter="url(#sh)">
+  <circle cx="820" cy="118" r="14" fill="url(#nf-term)" stroke="#475569" stroke-width="3.5"/>
+  <circle cx="820" cy="118" r="7"  fill="#64748b"/>
+</g>
+
+<!-- K-Accept Order -->
+<g filter="url(#sh)">
+  <rect x="230" y="238" width="110" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="285" y="253" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Accept</text>
+  <text x="285" y="267" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Order</text>
+</g>
+
+<!-- K-Prepare Food  (subprocess marker: inner double-line at bottom) -->
+<g filter="url(#sh)">
+  <rect x="380" y="238" width="100" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="430" y="253" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Prepare</text>
+  <text x="430" y="267" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Food</text>
+  <!-- subprocess marker: small square with + at bottom center -->
+  <rect x="421" y="270" width="18" height="12" rx="2"
+        fill="#1a2030" stroke="#334155" stroke-width="1"/>
+  <line x1="430" y1="272" x2="430" y2="280" stroke="#475569" stroke-width="1.2"/>
+  <line x1="426" y1="276" x2="434" y2="276" stroke="#475569" stroke-width="1.2"/>
+</g>
+
+<!-- K-Ready? gateway diamond  cx=565 cy=258  hw=35 hh=25
+     top=(565,233) right=(600,258) bot=(565,283) left=(530,258) -->
+<g filter="url(#sh)">
+  <polygon points="565,233 600,258 565,283 530,258"
+           fill="url(#nf-dec)" stroke="#d97706" stroke-width="1.8"/>
+  <text x="565" y="254" font-family="'Segoe UI',sans-serif" font-size="8.5"
+        fill="#fcd34d" text-anchor="middle" font-weight="600">Ready?</text>
+</g>
+
+<!-- K-Pack Order -->
+<g filter="url(#sh)">
+  <rect x="625" y="238" width="100" height="40" rx="6"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="675" y="253" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Pack</text>
+  <text x="675" y="267" font-family="'Segoe UI',sans-serif" font-size="9"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Order</text>
+</g>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LAYER 3 — ARROWHEADS + FLOW LABELS
+     ══════════════════════════════════════════════════════════ -->
+
+<!-- C1  right tip (100,118) -->
+<polygon points="100,118 91,114 91,122" fill="#475569"/>
+
+<!-- C2  right tip (230,118) -->
+<polygon points="230,118 221,114 221,122" fill="#475569"/>
+
+<!-- C3  down tip (285,238) blue dashed -->
+<polygon points="285,238 281,229 289,229" fill="#60a5fa"/>
+
+<!-- C4  right tip (380,258) -->
+<polygon points="380,258 371,254 371,262" fill="#475569"/>
+
+<!-- C5  right tip (530,258) -->
+<polygon points="530,258 521,254 521,262" fill="#475569"/>
+
+<!-- C6  right tip (625,258) -->
+<polygon points="625,258 616,254 616,262" fill="#475569"/>
+
+<!-- C7  up tip (430,278) amber loop-back -->
+<polygon points="430,278 426,287 434,287" fill="#f59e0b"/>
+
+<!-- C8  up tip (635,138) into Receive bottom, blue dashed -->
+<polygon points="635,138 631,147 639,147" fill="#60a5fa"/>
+
+<!-- C9  right tip (806,118) into End event -->
+<polygon points="806,118 797,114 797,122" fill="#475569"/>
+
+
+<!-- Flow labels -->
+
+<!-- YES label on diamond right -->
+<text x="607" y="254" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#86efac" font-weight="600">Yes</text>
+
+<!-- NO label on diamond bottom — loop back label -->
+<text x="540" y="320" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#f59e0b" text-anchor="middle">No — retry</text>
+
+<!-- Message flow annotation: "order notification" -->
+<rect x="295" y="162" width="96" height="18" rx="3"
+      fill="#0a1120" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="3,2" opacity="0.92"/>
+<text x="343" y="175" font-family="'Segoe UI',sans-serif" font-size="7.5"
+      fill="#60a5fa" text-anchor="middle" letter-spacing="0.04em">order notification</text>
+
+<!-- Message flow annotation: "order ready" -->
+<rect x="680" y="155" width="76" height="18" rx="3"
+      fill="#0a1120" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="3,2" opacity="0.92"/>
+<text x="718" y="168" font-family="'Segoe UI',sans-serif" font-size="7.5"
+      fill="#60a5fa" text-anchor="middle" letter-spacing="0.04em">order ready</text>
+
+<!-- Legend — bottom-right corner above metrics bar -->
+<rect x="730" y="286" width="180" height="38" rx="4" fill="#0d1120" stroke="#1e2535" stroke-width="1" opacity="0.95"/>
+<line x1="744" y1="298" x2="762" y2="298" stroke="#475569" stroke-width="1.8"/>
+<text x="768" y="302" font-family="'Segoe UI',sans-serif" font-size="7.5" fill="#64748b">Sequence flow</text>
+<line x1="744" y1="314" x2="762" y2="314" stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="4,3"/>
+<text x="768" y="318" font-family="'Segoe UI',sans-serif" font-size="7.5" fill="#64748b">Message flow (cross-lane)</text>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     METRICS BAR
+     ══════════════════════════════════════════════════════════ -->
+<rect x="0" y="328" width="920" height="32" fill="#0d1120"/>
+<text x="140" y="349" font-family="'Segoe UI',sans-serif" font-size="9.5"
+      fill="#64748b" text-anchor="middle">LANES: <tspan fill="#94a3b8" font-weight="600">2</tspan></text>
+<text x="300" y="349" font-family="'Segoe UI',sans-serif" font-size="9.5"
+      fill="#64748b" text-anchor="middle">TASKS: <tspan fill="#94a3b8" font-weight="600">5</tspan></text>
+<text x="470" y="349" font-family="'Segoe UI',sans-serif" font-size="9.5"
+      fill="#64748b" text-anchor="middle">GATEWAYS: <tspan fill="#fcd34d" font-weight="600">1</tspan></text>
+<text x="650" y="349" font-family="'Segoe UI',sans-serif" font-size="9.5"
+      fill="#64748b" text-anchor="middle">ROUTING: <tspan fill="#94a3b8" font-weight="600">Orthogonal</tspan></text>
+<text x="830" y="349" font-family="'Segoe UI',sans-serif" font-size="9.5"
+      fill="#64748b" text-anchor="middle">MSG FLOWS: <tspan fill="#60a5fa" font-weight="600">2 ─ ─</tspan></text>
+
+</svg>
+</div>
+</body>
+</html>

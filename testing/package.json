@@ -1,0 +1,15 @@
+{
+  "name": "process-graph-tests",
+  "version": "1.0.0",
+  "description": "Playwright E2E tests for Process Graph",
+  "scripts": {
+    "test":        "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui":     "playwright test --ui",
+    "test:smoke":  "playwright test tests/01-smoke.spec.js",
+    "report":      "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}

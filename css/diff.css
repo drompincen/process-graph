@@ -1,0 +1,36 @@
+/* diff.css — diff state colour overlays for nodes */
+
+/* Added (new in After) */
+[data-node-id].diff-added rect,
+[data-node-id].diff-added polygon {
+  fill: rgba(34,197,94,0.12) !important;
+  stroke: #22c55e !important;
+  stroke-width: 1.8px;
+}
+[data-node-id].diff-added { filter: url(#glow-green); }
+
+/* Removed (only in Before) */
+[data-node-id].diff-removed rect,
+[data-node-id].diff-removed polygon {
+  fill: rgba(239,68,68,0.12) !important;
+  stroke: #ef4444 !important;
+  stroke-width: 1.8px;
+  opacity: 0.85;
+}
+[data-node-id].diff-removed { filter: url(#glow-red); }
+[data-node-id].diff-removed text { text-decoration: line-through; }
+
+/* Changed (label/type/lane differs between phases) */
+[data-node-id].diff-changed rect,
+[data-node-id].diff-changed polygon {
+  fill: rgba(245,158,11,0.12) !important;
+  stroke: #f59e0b !important;
+  stroke-width: 1.8px;
+}
+[data-node-id].diff-changed { filter: url(#glow-amber); }
+
+/* Diff summary chips */
+.diff-chip          { border-radius: 10px; padding: 2px 8px; font-size: 9px; font-weight: 700; }
+.diff-chip.added    { background: #14532d; color: #86efac; }
+.diff-chip.removed  { background: #7f1d1d; color: #fca5a5; }
+.diff-chip.changed  { background: #78350f; color: #fcd34d; }

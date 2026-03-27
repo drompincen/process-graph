@@ -1,0 +1,164 @@
+{
+  "title": "Lean Six Sigma: Warranty Claim Processing",
+  "subtitle": "DMAIC improvement — from high-defect manual flow to poka-yoke automated stations",
+
+  "lanes": [
+    { "id": "customer",  "label": "Customer",         "color": "#1e3a5f", "height": 110 },
+    { "id": "intake",    "label": "Intake Station",   "color": "#1a3a2a", "height": 130 },
+    { "id": "validate",  "label": "Validate Station", "color": "#2a1a3a", "height": 130 },
+    { "id": "resolve",   "label": "Resolve Station",  "color": "#1a2a2a", "height": 130 },
+    { "id": "close",     "label": "Close Station",    "color": "#2a2010", "height": 110 }
+  ],
+
+  "metrics": [
+    { "label": "Cycle Time",    "before": "18 days",  "after": "2.5 days", "positive": false },
+    { "label": "Defect Rate",   "before": "28%",      "after": "3%",       "positive": false },
+    { "label": "First-Pass %",  "before": "42%",      "after": "91%",      "positive": true  },
+    { "label": "Automation",    "before": "0%",       "after": "85%",      "positive": true  },
+    { "label": "Cost/Claim",    "before": "$210",     "after": "$28",      "positive": false }
+  ],
+
+  "nodes": [
+    { "id": "b-start",      "type": "start-event", "label": "Claim\nReceived",         "lane": "customer",  "x": 110,  "phase": "before" },
+    { "id": "b-call-in",    "type": "task",        "label": "Phone / Email\nIntake",   "lane": "intake",    "x": 260,  "phase": "before", "diff": "removed" },
+    { "id": "b-paper",      "type": "task",        "label": "Paper Form\nEntry",        "lane": "intake",    "x": 400,  "phase": "before", "diff": "removed" },
+    { "id": "b-note1",      "type": "annotation",  "label": "⚠ 28% data entry errors\nno real-time validation",  "lane": "intake",  "x": 570, "phase": "before" },
+    { "id": "b-manual-chk", "type": "task",        "label": "Manual Eligibility\nCheck",  "lane": "validate","x": 650,  "phase": "before", "diff": "removed" },
+    { "id": "b-gw-elig",    "type": "gateway",     "label": "Eligible?",                "lane": "validate", "x": 790,  "phase": "before" },
+    { "id": "b-reject",     "type": "task",        "label": "Manual Rejection\nLetter", "lane": "validate", "x": 930,  "phase": "before" },
+    { "id": "b-route",      "type": "task",        "label": "Manual\nRouting",          "lane": "validate", "x": 930,  "phase": "before", "diff": "removed" },
+    { "id": "b-diagnose",   "type": "task",        "label": "Technician\nDiagnosis",    "lane": "resolve",  "x": 1070, "phase": "before", "diff": "removed" },
+    { "id": "b-gw-fix",     "type": "gateway",     "label": "Fixable?",                 "lane": "resolve",  "x": 1210, "phase": "before" },
+    { "id": "b-repair",     "type": "task",        "label": "Manual\nRepair",           "lane": "resolve",  "x": 1350, "phase": "before", "diff": "removed" },
+    { "id": "b-replace",    "type": "task",        "label": "Manual\nReplacement",      "lane": "resolve",  "x": 1350, "phase": "before", "diff": "removed" },
+    { "id": "b-close-chk",  "type": "task",        "label": "Manual Closure\nCheck",    "lane": "close",    "x": 1490, "phase": "before" },
+    { "id": "b-notify",     "type": "task",        "label": "Letter /\nPhone Call",     "lane": "customer",  "x": 1490, "phase": "before", "diff": "removed" },
+    { "id": "b-end",        "type": "end-event",   "label": "Claim\nClosed",            "lane": "customer",  "x": 1630, "phase": "before" },
+
+    { "id": "a-start",      "type": "start-event", "label": "Claim\nReceived",          "lane": "customer",  "x": 110,  "phase": "after" },
+    { "id": "a-cust",       "type": "persona",     "label": "Customer\nSelf-Service",   "lane": "customer",  "x": 250,  "phase": "after", "diff": "added" },
+    { "id": "a-intake-agt", "type": "agent",       "label": "Intake\nStation Agent",    "lane": "intake",    "x": 390,  "phase": "after", "diff": "added" },
+    { "id": "a-poka-yoke",  "type": "system",      "label": "Poka-Yoke\nValidation\nEngine", "lane": "intake", "x": 530, "phase": "after", "diff": "added" },
+    { "id": "a-gw-data",    "type": "gateway",     "label": "Data\nComplete?",          "lane": "intake",    "x": 670,  "phase": "after" },
+    { "id": "a-fix-data",   "type": "agent",       "label": "Auto-Fix &\nPrompt Agent", "lane": "intake",    "x": 810,  "phase": "after", "diff": "added" },
+    { "id": "a-elig-sys",   "type": "system",      "label": "Eligibility\nRules System","lane": "validate",  "x": 810,  "phase": "after", "diff": "added" },
+    { "id": "a-gw-elig",    "type": "gateway",     "label": "Eligible?",                "lane": "validate",  "x": 950,  "phase": "after" },
+    { "id": "a-reject-agt", "type": "agent",       "label": "Auto-Reject\nAgent",       "lane": "validate",  "x": 1090, "phase": "after", "diff": "added" },
+    { "id": "a-route-agt",  "type": "agent",       "label": "Smart\nRouting Agent",     "lane": "validate",  "x": 1090, "phase": "after", "diff": "added" },
+    { "id": "a-diag-agt",   "type": "agent",       "label": "Diagnostic\nAgent",        "lane": "resolve",   "x": 1230, "phase": "after", "diff": "added" },
+    { "id": "a-gw-fix",     "type": "gateway",     "label": "Fixable?",                 "lane": "resolve",   "x": 1370, "phase": "after" },
+    { "id": "a-repair-sub", "type": "subprocess",  "label": "Repair\nStation",          "lane": "resolve",   "x": 1510, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-replace-sub","type": "subprocess",  "label": "Replacement\nStation",     "lane": "resolve",   "x": 1510, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-close-sys",  "type": "system",      "label": "Closure &\nAudit System",  "lane": "close",     "x": 1650, "phase": "after", "diff": "added" },
+    { "id": "a-notify-agt", "type": "agent",       "label": "Notification\nAgent",      "lane": "customer",  "x": 1790, "phase": "after", "diff": "added" },
+    { "id": "a-end",        "type": "end-event",   "label": "Claim\nClosed",            "lane": "customer",  "x": 1930, "phase": "after" }
+  ],
+
+  "connections": [
+    { "id": "b-c1",  "from": "b-start",      "to": "b-call-in",   "type": "sequence", "phase": "before" },
+    { "id": "b-c2",  "from": "b-call-in",    "to": "b-paper",     "type": "sequence", "phase": "before" },
+    { "id": "b-c3",  "from": "b-paper",      "to": "b-manual-chk","type": "message",  "phase": "before" },
+    { "id": "b-c4",  "from": "b-manual-chk", "to": "b-gw-elig",   "type": "sequence", "phase": "before" },
+    { "id": "b-c5",  "from": "b-gw-elig",    "to": "b-reject",    "type": "sequence", "phase": "before", "decision": "no",  "label": "No" },
+    { "id": "b-c6",  "from": "b-gw-elig",    "to": "b-route",     "type": "sequence", "phase": "before", "decision": "yes", "label": "Yes" },
+    { "id": "b-c7",  "from": "b-route",      "to": "b-diagnose",  "type": "message",  "phase": "before" },
+    { "id": "b-c8",  "from": "b-diagnose",   "to": "b-gw-fix",    "type": "sequence", "phase": "before" },
+    { "id": "b-c9",  "from": "b-gw-fix",     "to": "b-repair",    "type": "sequence", "phase": "before", "decision": "yes", "label": "Repair" },
+    { "id": "b-c10", "from": "b-gw-fix",     "to": "b-replace",   "type": "sequence", "phase": "before", "decision": "no",  "label": "Replace" },
+    { "id": "b-c11", "from": "b-repair",     "to": "b-close-chk", "type": "sequence", "phase": "before" },
+    { "id": "b-c12", "from": "b-replace",    "to": "b-close-chk", "type": "sequence", "phase": "before" },
+    { "id": "b-c13", "from": "b-close-chk",  "to": "b-notify",    "type": "sequence", "phase": "before" },
+    { "id": "b-c14", "from": "b-notify",     "to": "b-end",       "type": "sequence", "phase": "before" },
+    { "id": "b-c15", "from": "b-reject",     "to": "b-notify",    "type": "sequence", "phase": "before" },
+
+    { "id": "a-c1",  "from": "a-start",      "to": "a-cust",      "type": "sequence", "phase": "after" },
+    { "id": "a-c2",  "from": "a-cust",       "to": "a-intake-agt","type": "message",  "phase": "after" },
+    { "id": "a-c3",  "from": "a-intake-agt", "to": "a-poka-yoke", "type": "message",  "phase": "after" },
+    { "id": "a-c4",  "from": "a-poka-yoke",  "to": "a-gw-data",   "type": "sequence", "phase": "after" },
+    { "id": "a-c5",  "from": "a-gw-data",    "to": "a-fix-data",  "type": "sequence", "phase": "after", "decision": "no",  "label": "Gaps" },
+    { "id": "a-c6",  "from": "a-fix-data",   "to": "a-poka-yoke", "type": "sequence", "phase": "after" },
+    { "id": "a-c7",  "from": "a-gw-data",    "to": "a-elig-sys",  "type": "message",  "phase": "after", "decision": "yes", "label": "OK" },
+    { "id": "a-c8",  "from": "a-elig-sys",   "to": "a-gw-elig",   "type": "sequence", "phase": "after" },
+    { "id": "a-c9",  "from": "a-gw-elig",    "to": "a-reject-agt","type": "sequence", "phase": "after", "decision": "no",  "label": "No" },
+    { "id": "a-c10", "from": "a-gw-elig",    "to": "a-route-agt", "type": "sequence", "phase": "after", "decision": "yes", "label": "Yes" },
+    { "id": "a-c11", "from": "a-route-agt",  "to": "a-diag-agt",  "type": "message",  "phase": "after" },
+    { "id": "a-c12", "from": "a-diag-agt",   "to": "a-gw-fix",    "type": "sequence", "phase": "after" },
+    { "id": "a-c13", "from": "a-gw-fix",     "to": "a-repair-sub","type": "sequence", "phase": "after", "decision": "yes", "label": "Repair" },
+    { "id": "a-c14", "from": "a-gw-fix",     "to": "a-replace-sub","type": "sequence","phase": "after", "decision": "no",  "label": "Replace" },
+    { "id": "a-c15", "from": "a-repair-sub", "to": "a-close-sys", "type": "sequence", "phase": "after" },
+    { "id": "a-c16", "from": "a-replace-sub","to": "a-close-sys", "type": "sequence", "phase": "after" },
+    { "id": "a-c17", "from": "a-reject-agt", "to": "a-notify-agt","type": "message",  "phase": "after" },
+    { "id": "a-c18", "from": "a-close-sys",  "to": "a-notify-agt","type": "message",  "phase": "after" },
+    { "id": "a-c19", "from": "a-notify-agt", "to": "a-end",       "type": "sequence", "phase": "after" }
+  ],
+
+  "story": {
+    "title": "DMAIC Happy Path: Lean Claim",
+    "description": "A warranty claim enters via the self-service portal. The Poka-Yoke engine catches missing fields immediately. Eligibility is decided in <1s. The Diagnostic Agent classifies the fault and routes to the correct station. Closure and notification fire automatically.",
+    "sequence": [
+      { "from": "a-start",      "to": "a-cust",       "text": "Customer opens warranty portal — structured form, no phone calls",        "status": "ready" },
+      { "from": "a-cust",       "to": "a-intake-agt", "text": "Portal submits claim to Intake Station Agent",                             "status": "ready" },
+      { "from": "a-intake-agt", "to": "a-poka-yoke",  "text": "Poka-Yoke engine validates 23 mandatory fields in real time",              "status": "wip",
+        "popup": { "type": "amplify", "msg": "All 23 fields validated — zero errors detected" } },
+      { "from": "a-poka-yoke",  "to": "a-gw-data",    "text": "Data complete — forwarding to eligibility check",                          "status": "ready" },
+      { "from": "a-gw-data",    "to": "a-elig-sys",   "text": "Data OK → Eligibility Rules System queried",                               "status": "ready" },
+      { "from": "a-elig-sys",   "to": "a-gw-elig",    "text": "Rules engine: claim within warranty window, serial verified",              "status": "wip",
+        "popup": { "type": "amplify", "msg": "Eligibility: PASS (0.4s)" } },
+      { "from": "a-gw-elig",    "to": "a-route-agt",  "text": "Eligible → Smart Routing Agent selects repair station",                    "status": "ready" },
+      { "from": "a-route-agt",  "to": "a-diag-agt",   "text": "Diagnostic Agent analyses fault code and service history",                 "status": "wip" },
+      { "from": "a-diag-agt",   "to": "a-gw-fix",     "text": "Diagnosis: component failure — repairable",                                "status": "ready" },
+      { "from": "a-gw-fix",     "to": "a-repair-sub", "text": "Claim routed to Repair Station (SLA: 1 business day)",                    "status": "wip" },
+      { "from": "a-repair-sub", "to": "a-close-sys",  "text": "Repair complete — Closure & Audit System records outcome",                 "status": "ready" },
+      { "from": "a-close-sys",  "to": "a-notify-agt", "text": "Audit passed — Notification Agent fires SMS + email with tracking",        "status": "ready",
+        "popup": { "type": "amplify", "msg": "Claim closed in 2.5 days — CSAT score: 9.2/10" } }
+    ]
+  },
+
+  "spec": {
+    "dmaic": {
+      "define":   "High defect rate (28%), long cycle time (18 days) in warranty claim processing — sourced from CSAT surveys and ops data",
+      "measure":  "Baseline: 42% first-pass yield, 28% data-entry error rate, 18-day average cycle time, $210 cost per claim",
+      "analyse":  "Root causes: unstructured phone intake, no real-time validation (poka-yoke absent), manual eligibility lookup with no SLA, ad-hoc routing with no skill-based assignment",
+      "improve":  "Introduce: self-service portal with Poka-Yoke validation engine, Eligibility Rules System (automated), Smart Routing Agent, automated Repair/Replace stations with SLA enforcement",
+      "control":  "After-phase stations enforce hard SLAs; Closure & Audit System logs every decision for continuous monitoring; control charts run weekly to detect drift"
+    },
+    "nodeInventory": [
+      { "id": "b-call-in",    "type": "task",      "phase": "before", "waste": "motion",      "role": "Customer must call in or send email — creates wait and manual transcription" },
+      { "id": "b-paper",      "type": "task",      "phase": "before", "waste": "defects",     "role": "Manually keyed paper form — 28% data entry error rate" },
+      { "id": "b-manual-chk", "type": "task",      "phase": "before", "waste": "waiting",     "role": "Agent looks up eligibility in spreadsheet — 30-min average wait" },
+      { "id": "b-route",      "type": "task",      "phase": "before", "waste": "motion",      "role": "Manual routing to team inbox — no skill-based assignment" },
+      { "id": "b-diagnose",   "type": "task",      "phase": "before", "waste": "overprocessing","role": "Each technician re-diagnoses from scratch — no reuse of prior cases" },
+      { "id": "b-repair",     "type": "task",      "phase": "before", "waste": "defects",     "role": "Manual repair without standardised work instructions — high re-open rate" },
+      { "id": "b-replace",    "type": "task",      "phase": "before", "waste": "inventory",   "role": "Manual replacement pick — no ERP integration, shipping errors common" },
+
+      { "id": "a-cust",       "type": "persona",   "phase": "after",  "leanTool": "5S / poka-yoke",   "role": "Named customer persona — structured portal eliminates intake waste" },
+      { "id": "a-intake-agt", "type": "agent",     "phase": "after",  "leanTool": "poka-yoke",        "role": "Intake Station Agent orchestrates the poka-yoke validation loop" },
+      { "id": "a-poka-yoke",  "type": "system",    "phase": "after",  "leanTool": "poka-yoke",        "role": "Mistake-proofing engine: 23 field rules enforced in real time, auto-prompts customer for corrections" },
+      { "id": "a-fix-data",   "type": "agent",     "phase": "after",  "leanTool": "poka-yoke",        "role": "Auto-Fill Agent: pre-fills known data (serial, purchase date) and prompts for the rest" },
+      { "id": "a-elig-sys",   "type": "system",    "phase": "after",  "leanTool": "standardised work","role": "Rules engine executes the same 12 eligibility checks every time in <0.5s" },
+      { "id": "a-reject-agt", "type": "agent",     "phase": "after",  "leanTool": "jidoka",           "role": "Auto-Reject: generates rejection reason, logs for root-cause trending" },
+      { "id": "a-route-agt",  "type": "agent",     "phase": "after",  "leanTool": "kanban / pull",    "role": "Smart Routing: assigns claim to next available qualified station using pull scheduling" },
+      { "id": "a-diag-agt",   "type": "agent",     "phase": "after",  "leanTool": "standardised work","role": "Diagnostic Agent: matches fault code to knowledge base, eliminates re-diagnosis waste" },
+      { "id": "a-repair-sub", "type": "subprocess","phase": "after",  "leanTool": "standardised work","role": "Repair Station: step-by-step torque & test instructions, 1-day SLA enforced" },
+      { "id": "a-replace-sub","type": "subprocess","phase": "after",  "leanTool": "kanban",           "role": "Replacement Station: ERP-integrated pick, real-time stock check, courier booking" },
+      { "id": "a-close-sys",  "type": "system",    "phase": "after",  "leanTool": "andon / control",  "role": "Closure & Audit System: records outcome, computes cycle time, feeds control charts" },
+      { "id": "a-notify-agt", "type": "agent",     "phase": "after",  "leanTool": "5S",               "role": "Notification Agent: SMS + email with outcome and tracking — no phone call needed" }
+    ],
+
+    "wasteEliminated": [
+      { "waste": "Defects",        "before": "28% data entry error rate",   "after": "~3% (poka-yoke prevented at source)" },
+      { "waste": "Waiting",        "before": "30 min eligibility queue",    "after": "<1s automated rules check" },
+      { "waste": "Motion",         "before": "Customer phone call + paper", "after": "Self-service portal" },
+      { "waste": "Overprocessing", "before": "Re-diagnosis per technician", "after": "Knowledge-base lookup in Diagnostic Agent" },
+      { "waste": "Inventory",      "before": "Manual part pick, no ERP",    "after": "Real-time ERP integration in Replacement Station" }
+    ],
+
+    "invariants": [
+      "The Poka-Yoke engine must sit BEFORE the Eligibility gateway — data quality is gate 1",
+      "The fix-data loop (a-fix-data → a-poka-yoke) must re-enter the validation engine, not skip it",
+      "Repair and Replacement stations both converge into the same Closure & Audit System node",
+      "No manual tasks (type=task) appear in the after phase — every step is agent, system, subprocess, gateway, or event",
+      "Agent nodes appear only in the after phase — zero agents in the before phase"
+    ]
+  }
+}

@@ -1,0 +1,298 @@
+/* diagram.css — SVG canvas, node shape classes, lane styles */
+
+/* ── SVG container ──────────────────────────────────────────── */
+#svg-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-surface);
+}
+
+#diagram-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 900px;
+}
+
+#sequence-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-surface);
+}
+
+/* ── Node interaction states ────────────────────────────────── */
+[data-node-id] {
+  cursor: default;
+  transition: filter 0.15s;
+}
+body.is-editing [data-node-id] {
+  cursor: grab;
+}
+body.is-editing [data-node-id]:active {
+  cursor: grabbing;
+}
+[data-node-id]:hover rect,
+[data-node-id]:hover polygon {
+  stroke-opacity: 0.9;
+}
+
+/* ── Connection paths interactive ─────────────────────────── */
+#connections-layer .conn-group path[data-conn-id] {
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke-width 0.15s ease;
+}
+
+/* ── Arrow hover effects (9.6) ────────────────────────────── */
+.conn-group:hover path {
+  stroke-width: 3;
+}
+.conn-group:hover .conn-label {
+  opacity: 1;
+}
+
+/* ── Selected connection ──────────────────────────────────── */
+#connections-layer path.conn-selected {
+  stroke: var(--accent) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px rgba(59,130,246,0.6));
+}
+
+/* ── Selected node ─────────────────────────────────────────── */
+[data-node-id].selected rect,
+[data-node-id].selected polygon,
+[data-node-id].selected circle {
+  stroke: var(--accent) !important;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px rgba(59,130,246,0.6));
+}
+
+/* ── Selection rectangle (rubber-band) ────────────────────── */
+.selection-rect {
+  fill: rgba(59,130,246,0.08);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+  pointer-events: none;
+}
+
+/* ── Palette ghost preview ────────────────────────────────── */
+.palette-ghost {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Node state classes ─────────────────────────────────────── */
+[data-node-id].state-bottleneck rect,
+[data-node-id].state-bottleneck polygon {
+  stroke: var(--accent-amber) !important;
+}
+[data-node-id].state-automated rect {
+  stroke: var(--accent) !important;
+}
+
+/* ── Benefit highlight (3-second glow on click) ─────────────── */
+[data-node-id].benefit-highlight rect,
+[data-node-id].benefit-highlight polygon {
+  stroke: var(--accent-green) !important;
+  filter: drop-shadow(0 0 8px rgba(34,197,94,0.7));
+  transition: all 0.2s;
+}
+
+/* ── Connection validation feedback ────────────────────────── */
+.connection-invalid {
+  filter: drop-shadow(0 0 6px #ef4444);
+}
+.connection-valid {
+  filter: drop-shadow(0 0 6px #22c55e);
+}
+.connection-tooltip {
+  position: absolute;
+  background: var(--bg-card);
+  border: 1px solid #ef4444;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── Connection hover tooltip (9.6) ──────────────────────────── */
+.conn-hover-tooltip {
+  position: absolute;
+  background: var(--bg-card, #1e293b);
+  border: 1px solid var(--border-mid, #334155);
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text-main, #e2e8f0);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ── Port indicator "+" buttons (9.4) ─────────────────────────── */
+.port-indicator {
+  pointer-events: all;
+  cursor: crosshair;
+  transition: r 0.2s ease, fill 0.15s ease, stroke 0.15s ease;
+}
+.port-available {
+  fill: #3b82f6;
+  stroke: #2563eb;
+}
+.port-occupied {
+  fill: #6b7280;
+  stroke: #4b5563;
+}
+.port-indicator:hover {
+  r: 8;
+}
+.port-available:hover {
+  fill: #60a5fa;
+  stroke: #3b82f6;
+}
+.port-plus-label {
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+/* Snapped port during drag-to-connect */
+.port-indicator.port-snapped {
+  fill: #22c55e;
+  stroke: #16a34a;
+  r: 8;
+  filter: drop-shadow(0 0 4px rgba(34,197,94,0.8));
+}
+/* 9.4 — Subtle pulse animation when in connect mode */
+@keyframes port-pulse {
+  0%   { r: 5; opacity: 1; }
+  50%  { r: 7; opacity: 0.7; }
+  100% { r: 5; opacity: 1; }
+}
+body.connect-mode .port-available {
+  animation: port-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Merge node ────────────────────────────────────────────── */
+.node-merge circle {
+  transition: stroke-opacity 0.15s;
+}
+.node-merge:hover circle {
+  stroke-opacity: 0.9;
+}
+
+/* ── Process Group container (9.8 — colored section styling) ──── */
+.node-process-group {
+  transition: filter 0.15s;
+}
+.node-process-group > rect:first-child {
+  transition: height 0.2s ease, opacity 0.2s ease;
+}
+.process-group-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+.process-group-toggle:hover {
+  opacity: 0.8;
+}
+.process-group-body {
+  transition: opacity 0.2s ease;
+}
+
+/* ── Cross-lane handoff indicator ─────────────────────────────── */
+.handoff-indicator {
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.handoff-indicator circle {
+  fill: none;
+}
+.handoff-indicator text {
+  user-select: none;
+}
+
+/* ── Light theme SVG overrides ──────────────────────────────── */
+body.light-theme [data-node-id] rect,
+body.light-theme [data-node-id] polygon {
+  fill: #e8edf4 !important;
+  stroke: #94a3b8;
+}
+body.light-theme [data-node-id] text {
+  fill: #1e293b !important;
+}
+body.light-theme .node-merge circle {
+  fill: #d1d5db !important;
+  stroke: #6b7280;
+}
+body.light-theme .node-merge circle:last-of-type {
+  fill: #6b7280 !important;
+}
+body.light-theme .process-group-toggle {
+  fill: #ffffff !important;
+}
+body.light-theme #connections-layer line,
+body.light-theme #connections-layer path {
+  stroke: #475569;
+}
+body.light-theme #connections-layer polygon {
+  fill: #475569;
+}
+body.light-theme #diagram-svg {
+  background: #f8fafc;
+}
+
+/* ── Light theme lane + background overrides ───────────────── */
+body.light-theme #background-layer rect {
+  fill: #f8fafc;
+}
+body.light-theme #lanes-layer rect {
+  fill: #e8edf4;
+}
+body.light-theme #lanes-layer line {
+  stroke: #cbd5e1;
+}
+
+/* ── Light theme lane header overrides ────────────────────── */
+body.light-theme .lane-label-text {
+  fill: #1e293b !important;
+}
+body.light-theme .lane-header rect:first-child {
+  opacity: 0.35 !important;
+}
+
+/* ── Typography improvements (9.10) ───────────────────────── */
+
+/* System font stack for all SVG text */
+#diagram-svg text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Node labels: 13px, semi-bold */
+[data-node-id] text {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Lane header text: 13px, bold, letter-spacing */
+.lane-label-text {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
+
+/* Decision labels (Yes/No on connection paths): 11px, medium weight */
+.conn-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Annotation text: 11px, italic */
+.node-annotation text {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}

@@ -1,0 +1,170 @@
+{
+  "title": "Employee Expense Claim",
+  "description": "Improvement from spreadsheet and email approval to mobile app with RPA processing",
+  "notes": "Process Owner: Finance Operations\nLast Reviewed: 2024-Q3\nSLA Target: Reimbursement < 3 business days (after)\nEscalation: finance-ops@company.com",
+
+  "metrics": {
+    "before": {
+      "stepCount": 6,
+      "processingDays": 30,
+      "rejectionRate": "~12%",
+      "lostReceiptRate": "~8%",
+      "manualSteps": 5,
+      "automationPct": 0
+    },
+    "after": {
+      "stepCount": 3,
+      "processingDays": 3,
+      "rejectionRate": "~3%",
+      "lostReceiptRate": "0%",
+      "manualSteps": 1,
+      "automationPct": 85
+    }
+  },
+
+  "lanes": [
+    { "id": "employee", "label": "Employee",      "color": "#1e3a5f", "height": 130 },
+    { "id": "approver", "label": "Line Manager",  "color": "#1a3a2a", "height": 130 },
+    { "id": "finance",  "label": "Finance System","color": "#3a1a3a", "height": 130 }
+  ],
+
+  "nodes": [
+    { "id": "b-start",       "type": "start-event", "label": "Start",                    "lane": "employee", "x": 100,  "phase": "before" },
+    { "id": "b-collect",     "type": "task",         "label": "Collect\nReceipts",        "lane": "employee", "x": 220,  "phase": "before", "diff": "removed" },
+    { "id": "b-spreadsheet", "type": "task",         "label": "Enter in\nSpreadsheet",    "lane": "employee", "x": 360,  "phase": "before", "diff": "removed" },
+    { "id": "b-email-mgr",   "type": "task",         "label": "Email to\nManager",        "lane": "employee", "x": 500,  "phase": "before", "diff": "removed" },
+    { "id": "b-review",      "type": "task",         "label": "Review &\nApprove",        "lane": "approver", "x": 640,  "phase": "before" },
+    { "id": "b-gateway",     "type": "gateway",      "label": "Approved?",                "lane": "approver", "x": 780,  "phase": "before" },
+    { "id": "b-fin-process", "type": "task",         "label": "Manual\nEntry Finance",    "lane": "finance",  "x": 920,  "phase": "before", "diff": "removed" },
+    { "id": "b-end",         "type": "end-event",    "label": "Reimbursed",               "lane": "employee", "x": 1060, "phase": "before" },
+    { "id": "b-rejected",    "type": "end-event",    "label": "Rejected",                 "lane": "approver", "x": 1060, "phase": "before" },
+    { "id": "b-note",        "type": "annotation",   "label": "⚠ Lost receipts\n& 30-day SLA\nbreach common", "lane": "employee", "x": 360, "phase": "before" },
+
+    { "id": "a-start",        "type": "start-event", "label": "Start",                   "lane": "employee", "x": 100,  "phase": "after" },
+    { "id": "a-mobile",       "type": "task",         "label": "Snap Receipt\n(Mobile)",  "lane": "employee", "x": 240,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-ocr",          "type": "subprocess",   "label": "OCR &\nValidation",       "lane": "finance",  "x": 400,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-policy-check", "type": "task",         "label": "Policy\nCheck",           "lane": "finance",  "x": 540,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-gateway",      "type": "gateway",      "label": "Approved?",               "lane": "approver", "x": 680,  "phase": "after" },
+    { "id": "a-approve",      "type": "task",         "label": "Manager\nApproval",       "lane": "approver", "x": 820,  "phase": "after" },
+    { "id": "a-rpa-process",  "type": "task",         "label": "RPA\nProcessing",         "lane": "finance",  "x": 960,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-end",          "type": "end-event",    "label": "Reimbursed",              "lane": "employee", "x": 1100, "phase": "after" },
+    { "id": "a-rejected",     "type": "end-event",    "label": "Rejected",                "lane": "approver", "x": 1100, "phase": "after" }
+  ],
+
+  "connections": [
+    { "id": "b-c1", "from": "b-start",       "to": "b-collect",     "type": "sequence",    "phase": "before" },
+    { "id": "b-c2", "from": "b-collect",     "to": "b-spreadsheet", "type": "sequence",    "phase": "before" },
+    { "id": "b-c3", "from": "b-spreadsheet", "to": "b-email-mgr",   "type": "sequence",    "phase": "before" },
+    { "id": "b-c4", "from": "b-email-mgr",   "to": "b-review",      "type": "message",     "phase": "before" },
+    { "id": "b-c5", "from": "b-review",      "to": "b-gateway",     "type": "sequence",    "phase": "before" },
+    { "id": "b-c6", "from": "b-gateway",     "to": "b-fin-process", "type": "sequence",    "phase": "before", "decision": "yes", "label": "Yes" },
+    { "id": "b-c7", "from": "b-gateway",     "to": "b-rejected",    "type": "sequence",    "phase": "before", "decision": "no",  "label": "No" },
+    { "id": "b-c8", "from": "b-fin-process", "to": "b-end",         "type": "sequence",    "phase": "before" },
+    { "id": "b-c9", "from": "b-review",      "to": "b-review",      "type": "conditional", "phase": "before", "label": "Request docs", "offset": 40 },
+
+    { "id": "a-c1", "from": "a-start",        "to": "a-mobile",       "type": "sequence", "phase": "after" },
+    { "id": "a-c2", "from": "a-mobile",        "to": "a-ocr",          "type": "message",  "phase": "after" },
+    { "id": "a-c3", "from": "a-ocr",           "to": "a-policy-check", "type": "sequence", "phase": "after" },
+    { "id": "a-c4", "from": "a-policy-check",  "to": "a-gateway",      "type": "message",  "phase": "after" },
+    { "id": "a-c5", "from": "a-gateway",       "to": "a-approve",      "type": "sequence", "phase": "after", "decision": "yes", "label": "Review Needed" },
+    { "id": "a-c6", "from": "a-gateway",       "to": "a-rpa-process",  "type": "sequence", "phase": "after", "decision": "no",  "label": "Auto-Approved" },
+    { "id": "a-c7", "from": "a-approve",       "to": "a-rpa-process",  "type": "sequence", "phase": "after" },
+    { "id": "a-c8", "from": "a-rpa-process",   "to": "a-end",          "type": "sequence", "phase": "after" },
+    { "id": "a-c9", "from": "a-gateway",       "to": "a-rejected",     "type": "sequence", "phase": "after", "decision": "escalate", "label": "Rejected" }
+  ],
+
+  "sequence": [
+    { "from": "a-start",        "to": "a-mobile",       "text": "Employee photographs receipt",      "status": "ready" },
+    { "from": "a-mobile",       "to": "a-ocr",          "text": "Receipt uploaded — OCR processing", "status": "ready",
+      "popup": { "type": "amplify", "msg": "OCR confidence: 98%" } },
+    { "from": "a-ocr",          "to": "a-policy-check", "text": "Validating against expense policy", "status": "wip" },
+    { "from": "a-policy-check", "to": "a-gateway",      "text": "Policy check passed",               "status": "ready" },
+    { "from": "a-gateway",      "to": "a-rpa-process",  "text": "Auto-approved — processing",        "status": "ready" },
+    { "from": "a-rpa-process",  "to": "a-end",          "text": "Reimbursement processed",           "status": "ready",
+      "popup": { "type": "amplify", "msg": "Paid in 3 business days" } }
+  ],
+
+  "spec": {
+    "schemaVersion": "1.0",
+    "description": "Employee expense claim: spreadsheet and email approval (before) vs. mobile receipt capture with OCR, policy check, and RPA payment processing (after).",
+    "nodeInventory": [
+      { "id": "b-start",       "type": "start-event", "lane": "employee", "phase": "before", "role": "Triggers the before-state expense claim process",                                   "critical": true  },
+      { "id": "b-collect",     "type": "task",         "lane": "employee", "phase": "before", "role": "Employee manually collects and stores paper receipts — high loss risk",             "critical": true  },
+      { "id": "b-spreadsheet", "type": "task",         "lane": "employee", "phase": "before", "role": "Employee manually transcribes receipts into spreadsheet — error-prone",             "critical": true  },
+      { "id": "b-email-mgr",   "type": "task",         "lane": "employee", "phase": "before", "role": "Spreadsheet attached and emailed to manager — untracked, no SLA enforcement",      "critical": true  },
+      { "id": "b-review",      "type": "task",         "lane": "approver", "phase": "before", "role": "Manager manually reviews spreadsheet against policy — bottleneck",                  "critical": true  },
+      { "id": "b-gateway",     "type": "gateway",      "lane": "approver", "phase": "before", "role": "Approval decision: yes routes to Finance, no terminates as rejected",              "critical": true  },
+      { "id": "b-fin-process", "type": "task",         "lane": "finance",  "phase": "before", "role": "Finance manually re-enters data into payment system — duplicate effort",           "critical": true  },
+      { "id": "b-end",         "type": "end-event",    "lane": "employee", "phase": "before", "role": "Employee reimbursed — typically 30 days after submission",                         "critical": false },
+      { "id": "b-rejected",    "type": "end-event",    "lane": "approver", "phase": "before", "role": "Claim rejected — employee notified by reply email, no structured feedback",        "critical": false },
+      { "id": "b-note",        "type": "annotation",   "lane": "employee", "phase": "before", "role": "Documents lost receipt risk and 30-day SLA breach as known pain points",           "critical": false },
+      { "id": "a-start",        "type": "start-event", "lane": "employee", "phase": "after", "role": "Triggers the after-state automated expense claim process",                          "critical": true  },
+      { "id": "a-mobile",       "type": "task",         "lane": "employee", "phase": "after", "role": "Employee captures receipt photo via mobile app — zero paper, instant upload",      "critical": true  },
+      { "id": "a-ocr",          "type": "subprocess",   "lane": "finance",  "phase": "after", "role": "OCR extracts structured data; validation checks totals, dates, VAT numbers",       "critical": true  },
+      { "id": "a-policy-check", "type": "task",         "lane": "finance",  "phase": "after", "role": "Automated policy engine checks category limits, per diem rules, duplicates",       "critical": true  },
+      { "id": "a-gateway",      "type": "gateway",      "lane": "approver", "phase": "after", "role": "Routes: auto-approve within policy, manager review above threshold, reject",       "critical": true  },
+      { "id": "a-approve",      "type": "task",         "lane": "approver", "phase": "after", "role": "Manager reviews only exceptions flagged above policy threshold",                    "critical": false },
+      { "id": "a-rpa-process",  "type": "task",         "lane": "finance",  "phase": "after", "role": "RPA bot posts payment entry to ERP and triggers bank transfer",                    "critical": true  },
+      { "id": "a-end",          "type": "end-event",    "lane": "employee", "phase": "after", "role": "Employee reimbursed within 3 business days with full digital audit trail",         "critical": false },
+      { "id": "a-rejected",     "type": "end-event",    "lane": "approver", "phase": "after", "role": "Claim rejected with structured reason code — employee notified in-app",            "critical": false }
+    ],
+    "connectionInventory": [
+      { "id": "b-c1", "from": "b-start",       "to": "b-collect",     "semantics": "Process starts: employee begins collecting physical receipts" },
+      { "id": "b-c2", "from": "b-collect",     "to": "b-spreadsheet", "semantics": "Receipts transcribed manually into expense spreadsheet" },
+      { "id": "b-c3", "from": "b-spreadsheet", "to": "b-email-mgr",   "semantics": "Completed spreadsheet emailed to line manager" },
+      { "id": "b-c4", "from": "b-email-mgr",   "to": "b-review",      "semantics": "Manager receives email and opens attached spreadsheet" },
+      { "id": "b-c5", "from": "b-review",      "to": "b-gateway",     "semantics": "Manager review complete — decision reached" },
+      { "id": "b-c6", "from": "b-gateway",     "to": "b-fin-process", "semantics": "Approved — forwarded to Finance for manual payment entry", "conditions": "All receipts valid and within policy" },
+      { "id": "b-c7", "from": "b-gateway",     "to": "b-rejected",    "semantics": "Rejected — manager replies to email with rejection reason", "conditions": "Policy violation or missing receipts" },
+      { "id": "b-c8", "from": "b-fin-process", "to": "b-end",         "semantics": "Finance completes manual entry — payment queued" },
+      { "id": "b-c9", "from": "b-review",      "to": "b-review",      "semantics": "Manager requests missing documents — self-loop until satisfied", "conditions": "Receipts incomplete or ambiguous" },
+      { "id": "a-c1", "from": "a-start",        "to": "a-mobile",       "semantics": "Employee opens mobile app to capture receipt" },
+      { "id": "a-c2", "from": "a-mobile",        "to": "a-ocr",          "semantics": "Receipt image uploaded to OCR subprocess via secure API" },
+      { "id": "a-c3", "from": "a-ocr",           "to": "a-policy-check", "semantics": "Structured receipt data forwarded to policy engine" },
+      { "id": "a-c4", "from": "a-policy-check",  "to": "a-gateway",      "semantics": "Policy check result and routing recommendation sent to gateway" },
+      { "id": "a-c5", "from": "a-gateway",       "to": "a-approve",      "semantics": "Above threshold — routed for manager review", "conditions": "Amount exceeds auto-approval limit" },
+      { "id": "a-c6", "from": "a-gateway",       "to": "a-rpa-process",  "semantics": "Within policy — auto-approved, sent straight to RPA", "conditions": "Amount within auto-approval policy" },
+      { "id": "a-c7", "from": "a-approve",       "to": "a-rpa-process",  "semantics": "Manager approved — forwarded to RPA for payment" },
+      { "id": "a-c8", "from": "a-rpa-process",   "to": "a-end",          "semantics": "RPA posts payment to ERP and triggers bank transfer" },
+      { "id": "a-c9", "from": "a-gateway",       "to": "a-rejected",     "semantics": "Policy violation detected — claim rejected with reason code", "conditions": "Claim fails policy checks" }
+    ],
+    "behaviors": [
+      {
+        "id": "beh-ocr-confidence",
+        "trigger": "Employee submits a blurry or partially obscured receipt photo",
+        "expectedOutcome": "OCR subprocess flags low-confidence extraction and prompts employee to retake photo",
+        "involvedNodes": ["a-mobile", "a-ocr"],
+        "testRef": "J5-S2"
+      },
+      {
+        "id": "beh-policy-routing",
+        "trigger": "Policy check detects expense above manager approval threshold",
+        "expectedOutcome": "Gateway routes claim to manager approval rather than auto-approve path",
+        "involvedNodes": ["a-policy-check", "a-gateway", "a-approve"],
+        "testRef": "J5-S3"
+      },
+      {
+        "id": "beh-rpa-failure",
+        "trigger": "RPA bot encounters ERP system timeout during payment posting",
+        "expectedOutcome": "RPA retries up to 3 times then raises alert to Finance team",
+        "involvedNodes": ["a-rpa-process"],
+        "testRef": "J9-S1"
+      },
+      {
+        "id": "beh-no-overlap",
+        "trigger": "User drags a-rpa-process onto a-policy-check position",
+        "expectedOutcome": "Drag resolves to nearest free grid cell; no bounding boxes overlap",
+        "involvedNodes": ["a-rpa-process", "a-policy-check"],
+        "testRef": "J14-S5"
+      }
+    ],
+    "invariants": [
+      "Every before-phase path from b-start reaches either b-end or b-rejected",
+      "Every after-phase path from a-start reaches either a-end or a-rejected",
+      "All receipt data retained for 7 years per compliance requirement",
+      "No two node bounding boxes overlap",
+      "Every gateway node has at least two outgoing connections",
+      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)"
+    ]
+  }
+}

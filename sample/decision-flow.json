@@ -1,0 +1,80 @@
+{
+  "title": "Decision Flow with Merge & Process Group",
+  "description": "Exercises gateway with 3 branches, merge convergence, process-group container, and cross-lane handoffs",
+  "notes": "Sample for Chapter 0 validation.\nDemonstrates merge, process-group, and multi-branch gateway patterns.",
+
+  "metrics": {
+    "before": {
+      "stepCount": 8,
+      "cycleTimeHours": 48,
+      "handoffCount": 4
+    },
+    "after": {
+      "stepCount": 6,
+      "cycleTimeHours": 8,
+      "handoffCount": 2
+    }
+  },
+
+  "lanes": [
+    { "id": "intake",     "label": "Intake Team",     "type": "department", "color": "#1e3a5f", "height": 160 },
+    { "id": "processing", "label": "Processing Unit",  "type": "department", "color": "#1a3a2a", "height": 200 },
+    { "id": "review",     "label": "Review Board",     "type": "department", "color": "#3a1a3a", "height": 160 }
+  ],
+
+  "nodes": [
+    { "id": "start",       "type": "start-event",   "label": "Request\nReceived",   "lane": "intake",     "x": 80,   "phase": "both" },
+    { "id": "triage",      "type": "task",           "label": "Triage\nRequest",     "lane": "intake",     "x": 220,  "phase": "both" },
+    { "id": "gw-route",    "type": "gateway",        "label": "Route?",              "lane": "intake",     "x": 380,  "phase": "both" },
+
+    { "id": "branch-a",    "type": "task",           "label": "Fast Track\nApproval", "lane": "intake",     "x": 560,  "phase": "both", "decision": "fast" },
+    { "id": "branch-b",    "type": "task",           "label": "Standard\nReview",     "lane": "review",     "x": 560,  "phase": "both", "decision": "standard" },
+    { "id": "branch-c",    "type": "task",           "label": "Escalate to\nBoard",   "lane": "review",     "x": 560,  "phase": "both", "decision": "escalate", "laneY": 130 },
+
+    { "id": "merge-point", "type": "merge",          "label": "",                    "lane": "processing", "x": 740,  "phase": "both" },
+
+    { "id": "pg-process",  "type": "process-group",  "label": "Automated Processing", "lane": "processing", "x": 920,  "phase": "after", "diff": "added",
+      "children": ["pg-validate", "pg-enrich"] },
+    { "id": "pg-validate", "type": "task",           "label": "Validate\nData",       "lane": "processing", "x": 860,  "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "pg-enrich",   "type": "task",           "label": "Enrich\nRecord",       "lane": "processing", "x": 980,  "phase": "after", "diff": "added", "state": "automated" },
+
+    { "id": "manual-proc", "type": "task",           "label": "Manual\nProcessing",   "lane": "processing", "x": 920,  "phase": "before", "diff": "removed" },
+
+    { "id": "finalize",    "type": "task",           "label": "Finalize\nOutcome",    "lane": "intake",     "x": 1100, "phase": "both" },
+    { "id": "end",         "type": "end-event",      "label": "Complete",             "lane": "intake",     "x": 1260, "phase": "both" }
+  ],
+
+  "connections": [
+    { "id": "c1",  "from": "start",       "to": "triage",      "type": "sequence",  "phase": "both" },
+    { "id": "c2",  "from": "triage",      "to": "gw-route",    "type": "sequence",  "phase": "both" },
+
+    { "id": "c3",  "from": "gw-route",    "to": "branch-a",    "type": "sequence",  "phase": "both", "decision": "fast",     "label": "Fast" },
+    { "id": "c4",  "from": "gw-route",    "to": "branch-b",    "type": "sequence",  "phase": "both", "decision": "standard", "label": "Standard" },
+    { "id": "c5",  "from": "gw-route",    "to": "branch-c",    "type": "sequence",  "phase": "both", "decision": "escalate", "label": "Escalate" },
+
+    { "id": "c6",  "from": "branch-a",    "to": "merge-point", "type": "message",   "phase": "both" },
+    { "id": "c7",  "from": "branch-b",    "to": "merge-point", "type": "message",   "phase": "both" },
+    { "id": "c8",  "from": "branch-c",    "to": "merge-point", "type": "message",   "phase": "both" },
+
+    { "id": "c9",  "from": "merge-point", "to": "manual-proc", "type": "sequence",  "phase": "before" },
+    { "id": "c10", "from": "merge-point", "to": "pg-process",  "type": "sequence",  "phase": "after" },
+
+    { "id": "c11", "from": "pg-validate", "to": "pg-enrich",   "type": "sequence",  "phase": "after" },
+
+    { "id": "c12", "from": "manual-proc", "to": "finalize",    "type": "message",   "phase": "before" },
+    { "id": "c13", "from": "pg-process",  "to": "finalize",    "type": "message",   "phase": "after" },
+
+    { "id": "c14", "from": "finalize",    "to": "end",         "type": "sequence",  "phase": "both" }
+  ],
+
+  "sequence": [
+    { "from": "start",       "to": "triage",      "text": "New request arrives",                    "status": "ready" },
+    { "from": "triage",      "to": "gw-route",    "text": "Request triaged and classified",          "status": "ready" },
+    { "from": "gw-route",    "to": "branch-a",    "text": "Routed to fast track",                   "status": "ready" },
+    { "from": "branch-a",    "to": "merge-point", "text": "Fast track approved — merging",           "status": "ready" },
+    { "from": "merge-point", "to": "pg-process",  "text": "All branches converged — processing",     "status": "wip" },
+    { "from": "pg-process",  "to": "finalize",    "text": "Automated processing complete",           "status": "ready",
+      "popup": { "type": "amplify", "msg": "Processing time reduced 83%" } },
+    { "from": "finalize",    "to": "end",         "text": "Outcome finalized and recorded",          "status": "ready" }
+  ]
+}

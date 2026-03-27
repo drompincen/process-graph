@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Process Graph Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f1117;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 40px 20px;
+  }
+  h1 { color: #e2e8f0; font-size: 1.1rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; opacity: 0.7; }
+  .subtitle { color: #64748b; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 32px; }
+  #diagram-wrap { background: #161b27; border: 1px solid #1e2535; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6); max-width: 100%; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<h1>Purchase Approval Process</h1>
+<div class="subtitle">Process Improvement &nbsp;·&nbsp; Before &amp; After</div>
+<div id="diagram-wrap">
+<!--
+  NODE EDGES — used to compute exact connection endpoints
+  ═══════════════════════════════════════════════════════
+  Rule: path endpoint = node_edge ± 1px so arrowhead TIP
+        lands exactly at the node edge, body stays outside.
+        (marker refX=7 means tip is 1px past path endpoint)
+
+  BEFORE nodes   [rect(x,y,w,h)]  key edges
+  ──────────────────────────────────────────
+  B-Start        rect( 88, 90, 64,36) right=152
+  B-Form         rect(195, 86,110,44) left=195  right=305  REMOVED
+  B-MgrReview    rect(325,206,110,44) left=325  bottom=250
+  B-FinCheck     rect(325,326,110,44) top=326   right=435  REMOVED
+  B-Approved     rect(455,330, 80,36) left=455
+
+  AFTER nodes    [rect(x,y,w,h)]  key edges
+  ──────────────────────────────────────────
+  A-Start        rect(588, 90, 64,36) right=652
+  A-Portal       rect(690, 86,110,44) left=690  bottom=130  NEW
+  A-AutoCheck    rect(690,446,110,44) top=446   right=800   NEW  (below portal, same x=745)
+  A-MgrReview    rect(820,206,110,44) left=820  right=930  bottom=250
+  A-Diamond      top=(1005,314) right=(1057,348) bot=(1005,382) left=(953,348)
+  A-Approved     rect(965,210, 80,36) bottom=246  (YES — above diamond, same cx=1005)
+  A-Rejected     rect(965,450, 80,36) top=450     (NO  — below diamond, same cx=1005)
+
+  CONNECTION ENDPOINTS (from_edge → to_edge−1)
+  ──────────────────────────────────────────────
+  BEFORE
+  B1  Start→Form         (152,108) → (194,108)   horiz
+  B2  Form→MgrReview     (305,108) → (324,228)   S-curve (C 315,108 315,228)
+  B3  MgrReview→FinCheck (380,250) → (380,325)   vert down
+  B4  FinCheck→Approved  (435,348) → (454,348)   horiz
+
+  AFTER
+  A1  Start→Portal       (652,108) → (689,108)   horiz
+  A2  Portal→AutoCheck   (745,130) → (745,445)   vert down  (same x=745)
+  A3  AutoCheck→MgrRev   (800,468) → (875,251)   S-curve (C 875,468 875,252)
+  A4  MgrRev→Diamond     (930,228) → (952,348)   S-curve (C 950,228 950,348)
+  A5  Diamond→Approved   (1005,314)→ (1005,247)  vert up    YES
+  A6  Diamond→Rejected   (1005,382)→ (1005,449)  vert down  NO
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="560" viewBox="0 0 1100 560">
+<defs>
+  <!-- Filters -->
+  <filter id="sh"  x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.5"/>
+  </filter>
+  <filter id="g-g" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#22c55e" flood-opacity="0.6"/>
+  </filter>
+  <filter id="g-r" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ef4444" flood-opacity="0.5"/>
+  </filter>
+
+  <!-- No SVG markers — arrowheads are explicit polygons in Layer 3 -->
+
+  <!-- Lane bg gradients -->
+  <linearGradient id="lg0" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1e3a5f" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.15"/>
+  </linearGradient>
+  <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1a3a2a" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.15"/>
+  </linearGradient>
+  <linearGradient id="lg2" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#3a1a3a" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.15"/>
+  </linearGradient>
+  <linearGradient id="lg3" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#2a2a1a" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#161b27" stop-opacity="0.15"/>
+  </linearGradient>
+
+  <!-- Node fill gradients -->
+  <linearGradient id="nf-task"  x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#2d3a52"/>
+    <stop offset="100%" stop-color="#1e2a3e"/>
+  </linearGradient>
+  <linearGradient id="nf-term"  x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#232d40"/>
+    <stop offset="100%" stop-color="#161b27"/>
+  </linearGradient>
+  <linearGradient id="nf-rem"   x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#3a1e1e"/>
+    <stop offset="100%" stop-color="#2a1515"/>
+  </linearGradient>
+  <linearGradient id="nf-add"   x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#1a3a26"/>
+    <stop offset="100%" stop-color="#102a1a"/>
+  </linearGradient>
+  <linearGradient id="nf-dec"   x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#3a3020"/>
+    <stop offset="100%" stop-color="#2a2215"/>
+  </linearGradient>
+  <linearGradient id="nf-ok"    x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#14532d"/>
+    <stop offset="100%" stop-color="#0d3d1f"/>
+  </linearGradient>
+  <linearGradient id="nf-rej"   x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#450a0a"/>
+    <stop offset="100%" stop-color="#2d0606"/>
+  </linearGradient>
+
+  <!-- Grid dots -->
+  <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+    <circle cx="12" cy="12" r="0.7" fill="rgba(255,255,255,0.04)"/>
+  </pattern>
+</defs>
+
+<!-- ── Background ───────────────────────────────────────────── -->
+<rect width="1100" height="560" fill="#161b27"/>
+<rect width="1100" height="560" fill="url(#grid)"/>
+
+<!-- ── Lane bands ───────────────────────────────────────────── -->
+<rect x="0" y="48"  width="1100" height="120" fill="url(#lg0)"/>
+<rect x="0" y="168" width="1100" height="120" fill="url(#lg1)"/>
+<rect x="0" y="288" width="1100" height="120" fill="url(#lg2)"/>
+<rect x="0" y="408" width="1100" height="120" fill="url(#lg3)"/>
+
+<!-- Lane borders -->
+<line x1="0" y1="48"  x2="1100" y2="48"  stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="168" x2="1100" y2="168" stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="288" x2="1100" y2="288" stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="408" x2="1100" y2="408" stroke="#1e2535" stroke-width="1"/>
+<line x1="0" y1="528" x2="1100" y2="528" stroke="#1e2535" stroke-width="1"/>
+
+<!-- Label column -->
+<line x1="90" y1="48" x2="90" y2="528" stroke="#1e2535" stroke-width="1" stroke-dasharray="2,4" opacity="0.5"/>
+<text x="8" y="114" font-family="'Segoe UI',sans-serif" font-size="10" fill="#94a3b8" letter-spacing="0.1em" font-weight="600" opacity="0.7">REQUESTER</text>
+<text x="8" y="234" font-family="'Segoe UI',sans-serif" font-size="10" fill="#94a3b8" letter-spacing="0.1em" font-weight="600" opacity="0.7">MANAGER</text>
+<text x="8" y="354" font-family="'Segoe UI',sans-serif" font-size="10" fill="#94a3b8" letter-spacing="0.1em" font-weight="600" opacity="0.7">FINANCE</text>
+<text x="8" y="474" font-family="'Segoe UI',sans-serif" font-size="10" fill="#94a3b8" letter-spacing="0.1em" font-weight="600" opacity="0.7">SYSTEM</text>
+
+<!-- ── Header bar ────────────────────────────────────────────── -->
+<rect x="0" y="0" width="1100" height="48" fill="#0d1120"/>
+<text x="314" y="29" font-family="'Segoe UI',sans-serif" font-size="11" fill="#64748b" text-anchor="middle" letter-spacing="0.16em" font-weight="700">BEFORE</text>
+<line x1="105" y1="24" x2="275" y2="24" stroke="#2a3550" stroke-width="1"/>
+<line x1="352" y1="24" x2="540" y2="24" stroke="#2a3550" stroke-width="1"/>
+
+<text x="828" y="29" font-family="'Segoe UI',sans-serif" font-size="11" fill="#22c55e" text-anchor="middle" letter-spacing="0.16em" font-weight="700" opacity="0.9">AFTER</text>
+<line x1="565" y1="24" x2="790" y2="24" stroke="#1a3a22" stroke-width="1"/>
+<line x1="866" y1="24" x2="1085" y2="24" stroke="#1a3a22" stroke-width="1"/>
+
+<!-- Divider -->
+<line x1="550" y1="0" x2="550" y2="560" stroke="#222d40" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- LAYER 1 — CONNECTION LINES                                 -->
+<!-- Paths start 7px inside source node (hidden by node fill)  -->
+<!-- Paths end at the arrowhead TAIL — polygons in Layer 3     -->
+<!-- complete each arrow above the nodes.                       -->
+<!--                                                            -->
+<!-- Arrowhead size: 9px long, 8px wide (±4px either side)     -->
+<!--   right → tip(tx,ty): tail at (tx-9, ty)                  -->
+<!--   down  → tip(tx,ty): tail at (tx,   ty-9)                -->
+<!--   up    → tip(tx,ty): tail at (tx,   ty+9)                -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- ── BEFORE connections ─── -->
+
+<!-- B1  Start→Form   horiz right
+         src inside Start right(152)→x=145  |  tail of arrowhead tip(194,108)→x=185 -->
+<line x1="145" y1="108" x2="185" y2="108" stroke="#475569" stroke-width="1.8"/>
+
+<!-- B2  Form→MgrReview   S-curve, arrives horizontally at MgrReview left
+         src inside Form right(305)→x=298   |  tail of arrowhead tip(324,228)→x=315
+         C1 exits Form horizontally; C2 enters MgrReview horizontally -->
+<path d="M 298,108 C 315,108 310,228 315,228"
+      stroke="#475569" stroke-width="1.8" fill="none"/>
+
+<!-- B3  MgrReview→FinCheck   vert down
+         src inside MgrReview bottom(250)→y=243  |  tail tip(380,325)→y=316 -->
+<line x1="380" y1="243" x2="380" y2="316" stroke="#475569" stroke-width="1.8"/>
+
+<!-- B4  FinCheck→Approved   horiz right
+         src inside FinCheck right(435)→x=428  |  tail tip(454,348)→x=445 -->
+<line x1="428" y1="348" x2="445" y2="348" stroke="#475569" stroke-width="1.8"/>
+
+
+<!-- ── AFTER connections ─── -->
+
+<!-- A1  Start→Portal   horiz right
+         src inside Start right(652)→x=645  |  tail tip(689,108)→x=680 -->
+<line x1="645" y1="108" x2="680" y2="108" stroke="#60a5fa" stroke-width="1.8" opacity="0.9"/>
+
+<!-- A2  Portal→AutoCheck   vert down  x=745
+         src inside Portal bottom(130)→y=123  |  tail tip(745,445)→y=436
+         x=745 is left of MgrReview (x=820–930) — no overlap -->
+<line x1="745" y1="123" x2="745" y2="436" stroke="#60a5fa" stroke-width="1.8" opacity="0.9"/>
+
+<!-- A3  AutoCheck→MgrReview   S-curve, arrives vertically at MgrReview bottom
+         src inside AutoCheck right(800)→x=793  |  tail tip(875,251)→y=260
+         C1 goes right along y=468; C2 enters MgrReview from below vertically -->
+<path d="M 793,468 C 875,468 875,265 875,260"
+      stroke="#60a5fa" stroke-width="1.8" fill="none" opacity="0.9"/>
+
+<!-- A4  MgrReview→Diamond   S-curve, arrives horizontally at diamond left-point
+         src inside MgrReview right(930)→x=923  |  tail tip(952,348)→x=943
+         C1 exits horizontally; C2 enters diamond horizontally -->
+<path d="M 923,228 C 950,228 940,348 943,348"
+      stroke="#60a5fa" stroke-width="1.8" fill="none" opacity="0.9"/>
+
+<!-- A5  Diamond→APPROVED   vert up   YES
+         src inside diamond top(314)→y=321  |  tail tip(1005,247)→y=256 -->
+<line x1="1005" y1="321" x2="1005" y2="256" stroke="#22c55e" stroke-width="2.2"/>
+
+<!-- A6  Diamond→REJECTED   vert down  NO
+         src inside diamond bottom(382)→y=375  |  tail tip(1005,449)→y=440 -->
+<line x1="1005" y1="375" x2="1005" y2="440" stroke="#f87171" stroke-width="2.2"/>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- LAYER 2 — NODES (paint over connection lines, not arrows)  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- ── BEFORE nodes ─── -->
+
+<!-- B-Start  rect(88,90,64,36) rx=18  cx=120,cy=108 -->
+<g filter="url(#sh)">
+  <rect x="88" y="90" width="64" height="36" rx="18"
+        fill="url(#nf-term)" stroke="#334155" stroke-width="1.5"/>
+  <text x="120" y="113" font-family="'Segoe UI',sans-serif" font-size="10"
+        fill="#94a3b8" text-anchor="middle" font-weight="700" letter-spacing="0.08em">START</text>
+</g>
+
+<!-- B-Form  rect(195,86,110,44) rx=8  [REMOVED] -->
+<g filter="url(#g-r)">
+  <rect x="195" y="86" width="110" height="44" rx="8"
+        fill="url(#nf-rem)" stroke="#ef4444" stroke-width="1.8"/>
+  <text x="250" y="107" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fca5a5" text-anchor="middle" font-weight="500">Submit</text>
+  <text x="250" y="122" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fca5a5" text-anchor="middle" font-weight="500"
+        text-decoration="line-through" opacity="0.8">Paper Form</text>
+</g>
+<rect x="257" y="78" width="50" height="15" rx="7" fill="#7f1d1d"/>
+<text x="282" y="89" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#fca5a5" text-anchor="middle" font-weight="700" letter-spacing="0.05em">REMOVED</text>
+
+<!-- B-MgrReview  rect(325,206,110,44) rx=8  cx=380,cy=228 -->
+<g filter="url(#sh)">
+  <rect x="325" y="206" width="110" height="44" rx="8"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="380" y="226" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Manager</text>
+  <text x="380" y="241" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Review</text>
+</g>
+
+<!-- B-FinCheck  rect(325,326,110,44) rx=8  [REMOVED] -->
+<g filter="url(#g-r)">
+  <rect x="325" y="326" width="110" height="44" rx="8"
+        fill="url(#nf-rem)" stroke="#ef4444" stroke-width="1.8"/>
+  <text x="380" y="347" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fca5a5" text-anchor="middle" font-weight="500">Finance</text>
+  <text x="380" y="362" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fca5a5" text-anchor="middle" font-weight="500"
+        text-decoration="line-through" opacity="0.8">Manual Check</text>
+</g>
+<rect x="387" y="318" width="50" height="15" rx="7" fill="#7f1d1d"/>
+<text x="412" y="329" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#fca5a5" text-anchor="middle" font-weight="700" letter-spacing="0.05em">REMOVED</text>
+
+<!-- B-Approved  rect(455,330,80,36) rx=18  cx=495,cy=348 -->
+<g filter="url(#sh)">
+  <rect x="455" y="330" width="80" height="36" rx="18"
+        fill="url(#nf-term)" stroke="#334155" stroke-width="1.5"/>
+  <text x="495" y="353" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#94a3b8" text-anchor="middle" font-weight="600">APPROVED</text>
+</g>
+
+<!-- Annotation bubble — bottleneck callout -->
+<!-- Box positioned in Manager lane left of the S-curve, clear of all paths -->
+<rect x="116" y="174" width="150" height="34" rx="4"
+      fill="#1c1706" stroke="#854d0e" stroke-width="1" stroke-dasharray="4,3" opacity="0.9"/>
+<!-- Triangle pointer pointing right toward the Form→MgrReview path at ~(312,175) -->
+<polygon points="266,184 278,191 266,198" fill="#1c1706" stroke="#854d0e" stroke-width="1"/>
+<text x="191" y="189" font-family="'Segoe UI',sans-serif" font-size="8.5"
+      fill="#fbbf24" text-anchor="middle" opacity="0.95">⚠  Bottleneck: 2–3 day</text>
+<text x="191" y="202" font-family="'Segoe UI',sans-serif" font-size="8.5"
+      fill="#fbbf24" text-anchor="middle" opacity="0.95">delay at each handoff</text>
+
+
+<!-- ── AFTER nodes ─── -->
+
+<!-- A-Start  rect(588,90,64,36) rx=18  cx=620,cy=108 -->
+<g filter="url(#sh)">
+  <rect x="588" y="90" width="64" height="36" rx="18"
+        fill="url(#nf-term)" stroke="#334155" stroke-width="1.5"/>
+  <text x="620" y="113" font-family="'Segoe UI',sans-serif" font-size="10"
+        fill="#94a3b8" text-anchor="middle" font-weight="700" letter-spacing="0.08em">START</text>
+</g>
+
+<!-- A-Portal  rect(690,86,110,44) rx=8  cx=745,cy=108  [NEW] -->
+<g filter="url(#g-g)">
+  <rect x="690" y="86" width="110" height="44" rx="8"
+        fill="url(#nf-add)" stroke="#22c55e" stroke-width="1.8"/>
+  <text x="745" y="107" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#86efac" text-anchor="middle" font-weight="500">Submit via</text>
+  <text x="745" y="122" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#86efac" text-anchor="middle" font-weight="500">Portal</text>
+</g>
+<rect x="747" y="78" width="36" height="15" rx="7" fill="#14532d"/>
+<text x="765" y="89" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#86efac" text-anchor="middle" font-weight="700" letter-spacing="0.05em">NEW</text>
+
+<!-- A-AutoCheck  rect(690,446,110,44) rx=8  cx=745,cy=468  [NEW]
+     Directly below A-Portal (same x=745).
+     Vertical line A2 at x=745 connects them — passes Manager lane at x=745,
+     which is LEFT of A-MgrReview (x=820–930). No overlap. -->
+<g filter="url(#g-g)">
+  <rect x="690" y="446" width="110" height="44" rx="8"
+        fill="url(#nf-add)" stroke="#22c55e" stroke-width="1.8"/>
+  <text x="745" y="466" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#86efac" text-anchor="middle" font-weight="500">Auto Budget</text>
+  <text x="745" y="481" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#86efac" text-anchor="middle" font-weight="500">Check</text>
+</g>
+<rect x="747" y="438" width="36" height="15" rx="7" fill="#14532d"/>
+<text x="765" y="449" font-family="'Segoe UI',sans-serif" font-size="8"
+      fill="#86efac" text-anchor="middle" font-weight="700" letter-spacing="0.05em">NEW</text>
+
+<!-- A-MgrReview  rect(820,206,110,44) rx=8  cx=875,cy=228 -->
+<g filter="url(#sh)">
+  <rect x="820" y="206" width="110" height="44" rx="8"
+        fill="url(#nf-task)" stroke="#334155" stroke-width="1.5"/>
+  <text x="875" y="226" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Manager</text>
+  <text x="875" y="241" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#cbd5e1" text-anchor="middle" font-weight="500">Review</text>
+</g>
+
+<!-- A-Diamond  top=(1005,314) right=(1057,348) bot=(1005,382) left=(953,348) -->
+<g filter="url(#sh)">
+  <polygon points="1005,314 1057,348 1005,382 953,348"
+           fill="url(#nf-dec)" stroke="#d97706" stroke-width="1.8"/>
+  <text x="1005" y="344" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fcd34d" text-anchor="middle" font-weight="600">Approved?</text>
+  <text x="1005" y="358" font-family="'Segoe UI',sans-serif" font-size="8.5"
+        fill="#fcd34d" text-anchor="middle" opacity="0.6">(auto)</text>
+</g>
+
+<!-- A-Approved  rect(965,210,80,36) rx=18  cx=1005,cy=228  [YES — above diamond] -->
+<g filter="url(#sh)">
+  <rect x="965" y="210" width="80" height="36" rx="18"
+        fill="url(#nf-ok)" stroke="#22c55e" stroke-width="1.8"/>
+  <text x="1005" y="233" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#86efac" text-anchor="middle" font-weight="700">APPROVED</text>
+</g>
+
+<!-- A-Rejected  rect(965,450,80,36) rx=18  cx=1005,cy=468  [NO — below diamond] -->
+<g filter="url(#sh)">
+  <rect x="965" y="450" width="80" height="36" rx="18"
+        fill="url(#nf-rej)" stroke="#ef4444" stroke-width="1.8"/>
+  <text x="1005" y="473" font-family="'Segoe UI',sans-serif" font-size="9.5"
+        fill="#fca5a5" text-anchor="middle" font-weight="700">REJECTED</text>
+</g>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- LAYER 3 — ARROWHEADS + LABELS  (above everything)          -->
+<!--                                                            -->
+<!-- Polygon format for each direction:                         -->
+<!--   right → "tip_x,tip_y  tip_x-9,tip_y-4  tip_x-9,tip_y+4"-->
+<!--   down  → "tip_x,tip_y  tip_x-4,tip_y-9  tip_x+4,tip_y-9"-->
+<!--   up    → "tip_x,tip_y  tip_x-4,tip_y+9  tip_x+4,tip_y+9"-->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- B1  right tip (194,108) --> <polygon points="194,108 185,104 185,112" fill="#475569"/>
+<!-- B2  right tip (324,228) --> <polygon points="324,228 315,224 315,232" fill="#475569"/>
+<!-- B3  down  tip (380,325) --> <polygon points="380,325 376,316 384,316" fill="#475569"/>
+<!-- B4  right tip (454,348) --> <polygon points="454,348 445,344 445,352" fill="#475569"/>
+
+<!-- A1  right tip (689,108) --> <polygon points="689,108 680,104 680,112" fill="#60a5fa"/>
+<!-- A2  down  tip (745,445) --> <polygon points="745,445 741,436 749,436" fill="#60a5fa"/>
+<!-- A3  up    tip (875,251) --> <polygon points="875,251 871,260 879,260" fill="#60a5fa"/>
+<!-- A4  right tip (952,348) --> <polygon points="952,348 943,344 943,352" fill="#60a5fa"/>
+<!-- A5  up    tip (1005,247)--> <polygon points="1005,247 1001,256 1009,256" fill="#22c55e"/>
+<!-- A6  down  tip (1005,449)--> <polygon points="1005,449 1001,440 1009,440" fill="#f87171"/>
+
+<!-- YES label -->
+<rect x="1010" y="271" width="28" height="16" rx="4" fill="#14532d" opacity="0.95"/>
+<text x="1024" y="283" font-family="'Segoe UI',sans-serif" font-size="9"
+      fill="#86efac" text-anchor="middle" font-weight="700">Yes</text>
+
+<!-- NO label -->
+<rect x="1010" y="407" width="24" height="16" rx="4" fill="#450a0a" opacity="0.95"/>
+<text x="1022" y="419" font-family="'Segoe UI',sans-serif" font-size="9"
+      fill="#fca5a5" text-anchor="middle" font-weight="700">No</text>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- METRICS BAR                                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<rect x="0" y="528" width="1100" height="32" fill="#0d1120"/>
+<line x1="550" y1="528" x2="550" y2="560" stroke="#1e2535" stroke-width="1"/>
+
+<text x="155" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">STEPS: <tspan fill="#94a3b8" font-weight="600">6</tspan></text>
+<text x="262" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">TIME: <tspan fill="#94a3b8" font-weight="600">48 hrs</tspan></text>
+<text x="374" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">HANDOFFS: <tspan fill="#f87171" font-weight="600">4</tspan></text>
+<text x="480" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">ERROR: <tspan fill="#f87171" font-weight="600">~15%</tspan></text>
+
+<text x="628" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">STEPS: <tspan fill="#22c55e" font-weight="600">3 ↓50%</tspan></text>
+<text x="748" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">TIME: <tspan fill="#22c55e" font-weight="600">2 hrs ↓96%</tspan></text>
+<text x="878" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">HANDOFFS: <tspan fill="#22c55e" font-weight="600">1 ↓75%</tspan></text>
+<text x="1005" y="549" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#64748b" text-anchor="middle">ERROR: <tspan fill="#22c55e" font-weight="600">~2% ↓</tspan></text>
+
+</svg>
+</div>
+</body>
+</html>

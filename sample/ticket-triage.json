@@ -1,0 +1,131 @@
+{
+  "title": "IT Ticket Triage Process",
+  "description": "Improvement from manual email-based triage to automated routing",
+  "notes": "Process Owner: IT Operations\nLast Reviewed: 2024-Q1\nSLA Target: < 30 minutes (after)",
+
+  "metrics": {
+    "before": { "stepCount": 5, "cycleTimeHours": 4, "handoffCount": 3, "errorRate": "~20%", "automationPct": 0 },
+    "after":  { "stepCount": 3, "cycleTimeHours": 0.5, "handoffCount": 1, "errorRate": "~3%", "automationPct": 75 }
+  },
+
+  "lanes": [
+    { "id": "user",    "label": "User",       "color": "#1e3a5f", "height": 120 },
+    { "id": "triage",  "label": "Triage",     "color": "#1a3a2a", "height": 120 },
+    { "id": "system",  "label": "System",     "color": "#2a2a1a", "height": 120 }
+  ],
+
+  "phases": [
+    { "id": "phase1", "label": "Auto Classify" },
+    { "id": "phase2", "label": "Smart Route" }
+  ],
+
+  "nodes": [
+    { "id": "b-start",    "type": "start-event", "label": "Start",            "lane": "user",   "x": 100, "phase": "before" },
+    { "id": "b-email",    "type": "task",         "label": "Send\nEmail",      "lane": "user",   "x": 210, "phase": "before", "diff": "removed" },
+    { "id": "b-inbox",    "type": "task",         "label": "Check\nInbox",     "lane": "triage", "x": 360, "phase": "before", "diff": "removed" },
+    { "id": "b-classify", "type": "task",         "label": "Manual\nClassify", "lane": "triage", "x": 510, "phase": "before", "diff": "removed" },
+    { "id": "b-gateway",  "type": "gateway",      "label": "Priority?",        "lane": "triage", "x": 660, "phase": "before" },
+    { "id": "b-high",     "type": "end-event",    "label": "High\nPriority",   "lane": "triage", "x": 790, "phase": "before" },
+    { "id": "b-low",      "type": "end-event",    "label": "Low\nPriority",    "lane": "user",   "x": 790, "phase": "before" },
+
+    { "id": "a-start",    "type": "start-event",  "label": "Start",            "lane": "user",   "x": 100, "phase": "after" },
+    { "id": "a-portal",   "type": "task",          "label": "Submit\nPortal",   "lane": "user",   "x": 210, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-classify", "type": "subprocess",    "label": "Auto\nClassify",   "lane": "system", "x": 380, "phase": "after", "diff": "added", "state": "automated" },
+    { "id": "a-gateway",  "type": "gateway",       "label": "Priority?",        "lane": "triage", "x": 550, "phase": "after" },
+    { "id": "a-high",     "type": "end-event",     "label": "High\nPriority",   "lane": "triage", "x": 700, "phase": "after" },
+    { "id": "a-low",      "type": "end-event",     "label": "Low\nPriority",    "lane": "user",   "x": 700, "phase": "after" }
+  ],
+
+  "connections": [
+    { "id": "b-c1", "from": "b-start",    "to": "b-email",    "type": "sequence", "phase": "before" },
+    { "id": "b-c2", "from": "b-email",    "to": "b-inbox",    "type": "message",  "phase": "before" },
+    { "id": "b-c3", "from": "b-inbox",    "to": "b-classify", "type": "sequence", "phase": "before" },
+    { "id": "b-c4", "from": "b-classify", "to": "b-gateway",  "type": "sequence", "phase": "before" },
+    { "id": "b-c5", "from": "b-gateway",  "to": "b-high",     "type": "sequence", "phase": "before", "decision": "yes", "label": "High" },
+    { "id": "b-c6", "from": "b-gateway",  "to": "b-low",      "type": "sequence", "phase": "before", "decision": "no",  "label": "Low" },
+
+    { "id": "a-c1", "from": "a-start",    "to": "a-portal",   "type": "sequence", "phase": "after" },
+    { "id": "a-c2", "from": "a-portal",   "to": "a-classify", "type": "message",  "phase": "after" },
+    { "id": "a-c3", "from": "a-classify", "to": "a-gateway",  "type": "message",  "phase": "after" },
+    { "id": "a-c4", "from": "a-gateway",  "to": "a-high",     "type": "sequence", "phase": "after", "decision": "yes", "label": "High" },
+    { "id": "a-c5", "from": "a-gateway",  "to": "a-low",      "type": "sequence", "phase": "after", "decision": "no",  "label": "Low" }
+  ],
+
+  "sequence": [
+    { "from": "a-start",    "to": "a-portal",   "text": "User opens support portal",    "status": "ready" },
+    { "from": "a-portal",   "to": "a-classify", "text": "Ticket submitted — classifying", "status": "ready" },
+    { "from": "a-classify", "to": "a-gateway",  "text": "Classification complete",       "status": "ready" },
+    { "from": "a-gateway",  "to": "a-high",     "text": "Routed to high-priority queue", "status": "ready" }
+  ],
+
+  "spec": {
+    "schemaVersion": "1.0",
+    "description": "Before/after comparison of an IT ticket triage process: manual email-based triage (before) vs. automated portal submission with AI classification and smart routing (after).",
+    "nodeInventory": [
+      { "id": "b-start",    "type": "start-event", "lane": "user",   "phase": "before", "role": "Triggers the before-state triage process when a user has an IT issue",                  "critical": true  },
+      { "id": "b-email",    "type": "task",         "lane": "user",   "phase": "before", "role": "User composes and sends an unstructured email to the IT inbox",                         "critical": true  },
+      { "id": "b-inbox",    "type": "task",         "lane": "triage", "phase": "before", "role": "Triage agent manually checks shared inbox for new tickets — repeated polling",          "critical": true  },
+      { "id": "b-classify", "type": "task",         "lane": "triage", "phase": "before", "role": "Agent manually reads email and assigns priority category",                              "critical": true  },
+      { "id": "b-gateway",  "type": "gateway",      "lane": "triage", "phase": "before", "role": "Priority decision split: High → immediate queue, Low → backlog queue",                 "critical": true  },
+      { "id": "b-high",     "type": "end-event",    "lane": "triage", "phase": "before", "role": "Ticket placed in high-priority queue for immediate handling",                          "critical": false },
+      { "id": "b-low",      "type": "end-event",    "lane": "user",   "phase": "before", "role": "Ticket placed in low-priority backlog",                                                "critical": false },
+      { "id": "a-start",    "type": "start-event",  "lane": "user",   "phase": "after",  "role": "Triggers the after-state automated triage process",                                    "critical": true  },
+      { "id": "a-portal",   "type": "task",          "lane": "user",   "phase": "after",  "role": "User submits structured ticket via self-service portal with category and description",  "critical": true  },
+      { "id": "a-classify", "type": "subprocess",    "lane": "system", "phase": "after",  "role": "System automatically classifies ticket priority using keyword rules and ML model",      "critical": true  },
+      { "id": "a-gateway",  "type": "gateway",       "lane": "triage", "phase": "after",  "role": "Priority routing split after automated classification",                                "critical": true  },
+      { "id": "a-high",     "type": "end-event",     "lane": "triage", "phase": "after",  "role": "Ticket routed to high-priority queue with SLA timer started",                         "critical": false },
+      { "id": "a-low",      "type": "end-event",     "lane": "user",   "phase": "after",  "role": "Ticket routed to low-priority queue with confirmation sent to user",                   "critical": false }
+    ],
+    "connectionInventory": [
+      { "id": "b-c1", "from": "b-start",    "to": "b-email",    "semantics": "User begins the process by composing an email" },
+      { "id": "b-c2", "from": "b-email",    "to": "b-inbox",    "semantics": "Email arrives in shared IT inbox (cross-lane message)" },
+      { "id": "b-c3", "from": "b-inbox",    "to": "b-classify", "semantics": "Agent opens email and proceeds to manual classification" },
+      { "id": "b-c4", "from": "b-classify", "to": "b-gateway",  "semantics": "Classification complete — priority level determined" },
+      { "id": "b-c5", "from": "b-gateway",  "to": "b-high",     "semantics": "Ticket classified as high priority", "conditions": "Keyword or agent judgment indicates urgency" },
+      { "id": "b-c6", "from": "b-gateway",  "to": "b-low",      "semantics": "Ticket classified as low priority",  "conditions": "No urgency indicators found" },
+      { "id": "a-c1", "from": "a-start",    "to": "a-portal",   "semantics": "User opens self-service portal to submit structured ticket" },
+      { "id": "a-c2", "from": "a-portal",   "to": "a-classify", "semantics": "Structured ticket data sent to auto-classify subprocess (cross-lane message)" },
+      { "id": "a-c3", "from": "a-classify", "to": "a-gateway",  "semantics": "Classification result forwarded to triage gateway (cross-lane message)" },
+      { "id": "a-c4", "from": "a-gateway",  "to": "a-high",     "semantics": "Ticket routed to high-priority queue", "conditions": "Classifier confidence >= threshold or critical category matched" },
+      { "id": "a-c5", "from": "a-gateway",  "to": "a-low",      "semantics": "Ticket routed to low-priority queue",  "conditions": "Classifier assigns routine/informational category" }
+    ],
+    "behaviors": [
+      {
+        "id": "beh-drag-snap",
+        "trigger": "User drags a node in edit mode",
+        "expectedOutcome": "Node snaps to nearest 20px grid position; connections re-route in real time",
+        "involvedNodes": ["b-classify", "a-classify"],
+        "testRef": "J6-S3"
+      },
+      {
+        "id": "beh-no-overlap",
+        "trigger": "User drags a node onto another node's bounding box",
+        "expectedOutcome": "Node resolves to nearest non-overlapping snapped position",
+        "involvedNodes": ["b-classify", "b-gateway"],
+        "testRef": "J14-S5"
+      },
+      {
+        "id": "beh-simulation",
+        "trigger": "User clicks Simulate",
+        "expectedOutcome": "Token travels from a-start through a-portal, a-classify, a-gateway and terminates at a-high or a-low according to the active flow",
+        "involvedNodes": ["a-start", "a-portal", "a-classify", "a-gateway", "a-high"],
+        "testRef": "J5-S1"
+      },
+      {
+        "id": "beh-label-edit",
+        "trigger": "User double-clicks a node in edit mode",
+        "expectedOutcome": "Inline text input appears; pressing Enter commits new label to SVG",
+        "involvedNodes": ["b-classify"],
+        "testRef": "J6-S7"
+      }
+    ],
+    "invariants": [
+      "Every before-phase path from b-start reaches either b-high or b-low",
+      "Every after-phase path from a-start reaches either a-high or a-low",
+      "No two nodes within the same lane share the same x coordinate",
+      "No two node bounding boxes overlap after drag completes",
+      "Every gateway node has at least two outgoing connections",
+      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)"
+    ]
+  }
+}
