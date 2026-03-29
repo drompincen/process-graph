@@ -360,6 +360,8 @@ function checkLabelNodeCollision(labels, boxes) {
     for (const box of boxes) {
       // Skip the connection's own endpoints
       if (label.connFrom === box.id || label.connTo === box.id) continue;
+      // Skip gateway nodes — decision labels (Yes/No) naturally sit near gateways
+      if (box.type === 'gateway') continue;
       if (label.x > box.x - PAD && label.x < box.x + box.w + PAD &&
           label.y > box.y - PAD && label.y < box.y + box.h + PAD) {
         violations.push({
