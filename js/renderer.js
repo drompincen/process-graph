@@ -1849,34 +1849,74 @@ function renderPhaseDots(graph) {
 // ─── updateFlowDropdown ───────────────────────────────────────────────────────
 
 /**
- * Populate the #flow-selector <select> element with flow options.
- * First option is always "Default sequence".
+ * Populate the #flow-selector <select> element with flows available at the
+ * current phase.  When the graph has a `phases` array, only flows whose
+ * `phases` list includes the current phase ID are shown.  Flows with no
+ * `phases` restriction are always shown.
+ *
+ * Auto-selects the first available flow and sets state.activeSequence.
  */
 function updateFlowDropdown(graph) {
   const sel = dom.flowSelector;
   if (!sel) return;
 
+  const flows = graph.flows || [];
+  if (flows.length === 0) {
+    sel.style.display = 'none';
+    return;
+  }
+
+  sel.style.display = '';
   sel.innerHTML = '';
 
-  const defOpt = document.createElement('option');
-  defOpt.value = '';
-  defOpt.textContent = 'Default sequence';
-  sel.appendChild(defOpt);
+  const phases = graph.phases || [];
+  const currentPhaseId = phases[state.currentPhaseIndex]
+    ? phases[state.currentPhaseIndex].id
+    : null;
 
-  const flows = graph.flows || [];
-  flows.forEach(flow => {
+  // Filter flows to those available at the current phase
+  const available = flows.filter(flow => {
+    if (!flow.phases || flow.phases.length === 0) return true;
+    if (!currentPhaseId) return true;
+    return flow.phases.includes(currentPhaseId);
+  });
+
+  if (available.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No flows for this phase';
+    opt.disabled = true;
+    sel.appendChild(opt);
+    return;
+  }
+
+  available.forEach(flow => {
     const opt = document.createElement('option');
     opt.value = flow.id;
     opt.textContent = flow.name || flow.id;
     sel.appendChild(opt);
   });
 
-  // Show/hide selector based on whether flows exist
-  sel.style.display = flows.length > 0 ? '' : 'none';
+  // Auto-select first flow and load its sequence
+  const firstFlow = available[0];
+  sel.value = firstFlow.id;
+  state.selectedFlowId = firstFlow.id;
+  if (firstFlow.sequence) {
+    state.activeSequence = firstFlow.sequence;
+  }
 
-  // Wire change handler (idempotent — replaces any previous listener via re-assigning)
+  // Wire change handler (idempotent — replaces any previous listener via .onchange)
   sel.onchange = () => {
-    state.selectedFlowId = sel.value || null;
+    const flowId = sel.value || null;
+    state.selectedFlowId = flowId;
+    if (flowId && graph.flows) {
+      const flow = graph.flows.find(f => f.id === flowId);
+      if (flow && flow.sequence) {
+        state.activeSequence = flow.sequence;
+      }
+    } else {
+      state.activeSequence = graph.sequence || [];
+    }
   };
 }
 
