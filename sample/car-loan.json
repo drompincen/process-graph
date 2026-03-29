@@ -26,18 +26,18 @@
 
   "nodes": [
     { "id": "start",          "type": "start-event", "label": "Loan\nRequest",        "lane": "applicant",  "x": 100 },
-    { "id": "end-approved",   "type": "end-event",   "label": "Loan\nFunded",         "lane": "applicant",  "x": 1500, "phase": ["phase0", "phase2", "phase3"] },
-    { "id": "end-denied",     "type": "end-event",   "label": "Denied",               "lane": "applicant",  "x": 1500, "y": 80, "phase": ["phase0", "phase2", "phase3"] },
+    { "id": "end-approved",   "type": "end-event",   "label": "Loan\nFunded",         "lane": "applicant",  "x": 1300, "phase": ["phase0", "phase2", "phase3"] },
+    { "id": "end-denied",     "type": "end-event",   "label": "Denied",               "lane": "applicant",  "x": 1300, "y": 80, "phase": ["phase0", "phase2", "phase3"] },
 
     { "id": "walk-in",        "type": "task",        "label": "Walk into\nBranch",          "lane": "applicant",  "x": 240, "phase": ["phase0"] },
     { "id": "paper-app",      "type": "task",        "label": "Fill Paper\nApplication",    "lane": "applicant",  "x": 380, "phase": ["phase0"] },
     { "id": "collect-docs",   "type": "task",        "label": "Bring Docs\n(W2, Stubs)",         "lane": "applicant", "x": 520, "phase": ["phase0"] },
-    { "id": "lo-review",      "type": "task",        "label": "Loan Officer\nReviews Docs",  "lane": "branch",     "x": 660, "phase": ["phase0"] },
-    { "id": "manual-enter",   "type": "task",        "label": "Key Data\ninto System",       "lane": "branch",     "x": 800, "phase": ["phase0"] },
-    { "id": "order-credit",   "type": "task",        "label": "Order Credit\nReport (Phone)", "lane": "branch",    "x": 940, "phase": ["phase0"] },
-    { "id": "uw-manual",      "type": "task",        "label": "Manual\nUnderwriting",        "lane": "underwrite", "x": 1080, "phase": ["phase0"] },
-    { "id": "uw-checklist",   "type": "task",        "label": "Compliance\nChecklist",        "lane": "underwrite", "x": 1220, "phase": ["phase0"] },
-    { "id": "decision-call",  "type": "gateway",     "label": "Approved?",                    "lane": "branch",     "x": 1360, "phase": ["phase0"] },
+    { "id": "lo-review",      "type": "task",        "label": "LO Reviews\nDocs",             "lane": "branch",     "x": 620, "phase": ["phase0"] },
+    { "id": "manual-enter",   "type": "task",        "label": "Key Data\ninto System",       "lane": "branch",     "x": 740, "phase": ["phase0"] },
+    { "id": "order-credit",   "type": "task",        "label": "Order Credit\nReport",         "lane": "branch",    "x": 860, "phase": ["phase0"] },
+    { "id": "uw-manual",      "type": "task",        "label": "Manual\nUnderwriting",        "lane": "underwrite", "x": 980, "phase": ["phase0"] },
+    { "id": "uw-checklist",   "type": "task",        "label": "Compliance\nChecklist",        "lane": "underwrite", "x": 1100, "phase": ["phase0"] },
+    { "id": "decision-call",  "type": "gateway",     "label": "Approved?",                    "lane": "branch",     "x": 1200, "phase": ["phase0"] },
 
     { "id": "scan-upload",    "type": "task",        "label": "Scan & Upload\nDocs at Branch", "lane": "branch",    "x": 240, "phase": ["phase1"] },
     { "id": "doc-agent",      "type": "agent",       "label": "Doc Review\nAgent",             "lane": "system",    "x": 380, "phase": "phase1" },
@@ -58,8 +58,8 @@
     { "id": "consent-api",    "type": "system",      "label": "Consent &\nData Pull",           "lane": "system",    "x": 240, "phase": "phase3", "state": "automated" },
     { "id": "ai-underwriter", "type": "agent",       "label": "AI\nUnderwriter",               "lane": "system",    "x": 800, "phase": "phase3", "state": "automated" },
     { "id": "instant-gateway","type": "gateway",     "label": "Confidence?",                    "lane": "system",    "x": 940, "phase": "phase3" },
-    { "id": "instant-approve","type": "task",        "label": "Instant\nApproval",              "lane": "system",    "x": 1120, "phase": "phase3", "state": "automated" },
-    { "id": "human-escalate", "type": "task",        "label": "Human\nEscalation",              "lane": "underwrite","x": 1120, "phase": "phase3" }
+    { "id": "instant-approve","type": "task",        "label": "Instant\nApproval",              "lane": "system",    "x": 1080, "phase": "phase3", "state": "automated" },
+    { "id": "human-escalate", "type": "task",        "label": "Human\nEscalation",              "lane": "underwrite","x": 1080, "phase": "phase3" }
   ],
 
   "connections": [
