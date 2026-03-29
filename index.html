@@ -41,20 +41,13 @@
 
     <div class="h-divider"></div>
 
-    <!-- Playback controls (archviz-style) -->
+    <!-- Playback controls (flow animation — token moves along sequence steps) -->
     <div class="playback-controls">
-      <button id="btn-rewind" class="playback-btn" title="Phase 0">⏮</button>
-      <button id="btn-play-phases" class="playback-btn" title="Auto-play phases">▶</button>
-      <button id="btn-ff-phase" class="playback-btn" title="Last phase">⏭</button>
+      <button id="btn-rewind" class="playback-btn" title="Reset flow animation">⏮</button>
+      <button id="btn-play-flow" class="playback-btn" title="Animate flow sequence">▶</button>
+      <button id="btn-ff-flow" class="playback-btn" title="Fast-forward to end of sequence">⏭</button>
     </div>
 
-    <div class="h-divider"></div>
-
-    <!-- Font size controls -->
-    <div class="font-controls">
-      <button id="btn-font-down" class="font-ctrl-btn" title="Decrease font">A−</button>
-      <button id="btn-font-up" class="font-ctrl-btn" title="Increase font">A+</button>
-    </div>
   </div>
 
   <div class="controls-right">
@@ -113,6 +106,12 @@
           <span>Slide font</span>
           <button id="btn-font-smaller">A−</button>
           <button id="btn-font-larger">A+</button>
+        </div>
+        <hr class="menu-sep">
+        <div class="font-size-row">
+          <span>Diagram font</span>
+          <button id="btn-font-down">A−</button>
+          <button id="btn-font-up">A+</button>
         </div>
       </div>
     </div>
@@ -359,56 +358,14 @@ function wirePhaseNav() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PLAYBACK CONTROLS (archviz-style rewind / play / fast-forward)
+   PLAYBACK CONTROLS (flow animation — token moves along sequence)
+   Wiring is handled by animation.js initAnimation() which reads
+   dom.btnPlayFlow, dom.btnFfFlow, dom.btnRewind from state.js.
+   No additional wiring needed here.
    ════════════════════════════════════════════════════════════════ */
 function wirePlayback() {
-  const slider  = dom.phaseSlider;
-  const btnRew  = document.getElementById('btn-rewind');
-  const btnPlay = document.getElementById('btn-play-phases');
-  const btnFF   = document.getElementById('btn-ff-phase');
-
-  if (!slider || !btnRew || !btnPlay || !btnFF) return;
-
-  let playInterval = null;
-
-  btnRew.addEventListener('click', () => {
-    stopPlay();
-    slider.value = 0;
-    slider.dispatchEvent(new Event('input'));
-  });
-
-  btnFF.addEventListener('click', () => {
-    stopPlay();
-    slider.value = slider.max;
-    slider.dispatchEvent(new Event('input'));
-  });
-
-  btnPlay.addEventListener('click', () => {
-    if (playInterval) {
-      stopPlay();
-    } else {
-      btnPlay.textContent = '⏸';
-      btnPlay.title = 'Pause auto-play';
-      playInterval = setInterval(() => {
-        const v = parseInt(slider.value, 10);
-        if (v < parseInt(slider.max, 10)) {
-          slider.value = v + 1;
-          slider.dispatchEvent(new Event('input'));
-        } else {
-          stopPlay();
-        }
-      }, 2000);
-    }
-  });
-
-  function stopPlay() {
-    if (playInterval) {
-      clearInterval(playInterval);
-      playInterval = null;
-    }
-    btnPlay.textContent = '▶';
-    btnPlay.title = 'Auto-play phases';
-  }
+  // All playback button wiring is done in animation.js initAnimation()
+  // which reads the header buttons via dom.btnPlayFlow / dom.btnFfFlow / dom.btnRewind
 }
 
 /* ════════════════════════════════════════════════════════════════

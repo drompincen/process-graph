@@ -123,6 +123,72 @@
     { "from": "decision-call", "to": "end-approved",  "text": "Loan officer calls customer with decision","status": "ready" }
   ],
 
+  "flows": [
+    {
+      "id": "paper-branch",
+      "name": "Paper Branch Process",
+      "phases": ["phase0"],
+      "sequence": [
+        { "from": "start",         "to": "walk-in",       "text": "Customer walks into branch",              "status": "ready" },
+        { "from": "walk-in",       "to": "paper-app",     "text": "Takes a number, waits 20-45 min",         "status": "ready" },
+        { "from": "paper-app",     "to": "collect-docs",  "text": "Fills 4-page paper application by hand",  "status": "ready" },
+        { "from": "collect-docs",  "to": "lo-review",     "text": "Hands pay stubs, W-2, bank statements",   "status": "wip" },
+        { "from": "lo-review",     "to": "manual-enter",  "text": "Loan officer reviews each page manually", "status": "wip" },
+        { "from": "manual-enter",  "to": "order-credit",  "text": "Keys data into legacy system",            "status": "wip" },
+        { "from": "order-credit",  "to": "uw-manual",     "text": "Phones credit bureau for report",         "status": "wip" },
+        { "from": "uw-manual",     "to": "uw-checklist",  "text": "Underwriter reviews full package",        "status": "wip" },
+        { "from": "uw-checklist",  "to": "decision-call", "text": "Compliance checklist completed",          "status": "ready" },
+        { "from": "decision-call", "to": "end-approved",  "text": "Loan officer calls customer with decision", "status": "ready" }
+      ]
+    },
+    {
+      "id": "agent-review",
+      "name": "AI Doc Review",
+      "phases": ["phase1"],
+      "sequence": [
+        { "from": "start",         "to": "scan-upload",   "text": "Customer scans docs at branch kiosk",       "status": "ready" },
+        { "from": "scan-upload",   "to": "doc-agent",     "text": "AI agent receives scanned documents",       "status": "ready" },
+        { "from": "doc-agent",     "to": "extract-data",  "text": "Agent extracts income and employment data", "status": "wip" },
+        { "from": "extract-data",  "to": "credit-api",    "text": "System pulls credit bureau report via API", "status": "wip" },
+        { "from": "doc-agent",     "to": "lo-validate",   "text": "Loan officer validates AI output",          "status": "wip" },
+        { "from": "lo-validate",   "to": "uw-assisted",   "text": "Assisted underwriting with AI + human",     "status": "wip" },
+        { "from": "credit-api",    "to": "uw-assisted",   "text": "Credit data feeds into underwriting",       "status": "wip" },
+        { "from": "uw-assisted",   "to": "email-decision","text": "Decision emailed to customer",              "status": "ready" }
+      ]
+    },
+    {
+      "id": "digital-scoring",
+      "name": "Digital + Auto-Scoring",
+      "phases": ["phase2"],
+      "sequence": [
+        { "from": "start",          "to": "online-form",    "text": "Customer fills pre-populated online form",    "status": "ready" },
+        { "from": "online-form",    "to": "doc-upload",     "text": "Uploads docs via phone photo or PDF",         "status": "ready" },
+        { "from": "doc-upload",     "to": "doc-agent",      "text": "AI agent processes uploaded documents",       "status": "wip" },
+        { "from": "doc-agent",      "to": "credit-api",     "text": "Credit bureau API pull triggered",            "status": "wip" },
+        { "from": "credit-api",     "to": "scoring-engine", "text": "Auto-scoring engine evaluates application",   "status": "wip" },
+        { "from": "scoring-engine", "to": "risk-gateway",   "text": "Risk level assessed",                         "status": "wip" },
+        { "from": "risk-gateway",   "to": "auto-approve",   "text": "Low risk: auto-approved instantly",           "status": "ready" },
+        { "from": "auto-approve",   "to": "end-approved",   "text": "Loan funded — customer notified",             "status": "ready" }
+      ]
+    },
+    {
+      "id": "instant-approval",
+      "name": "Instant 1-Minute Approval",
+      "phases": ["phase3"],
+      "sequence": [
+        { "from": "start",            "to": "instant-form",    "text": "Customer opens form — 60 seconds total",      "status": "ready" },
+        { "from": "instant-form",     "to": "consent-api",     "text": "Consent given, data pulled automatically",    "status": "ready" },
+        { "from": "consent-api",      "to": "doc-agent",       "text": "Documents verified by AI in seconds",         "status": "wip" },
+        { "from": "consent-api",      "to": "credit-api",      "text": "Credit pulled in parallel",                   "status": "wip" },
+        { "from": "doc-agent",        "to": "ai-underwriter",  "text": "AI underwriter receives doc analysis",        "status": "wip" },
+        { "from": "credit-api",       "to": "ai-underwriter",  "text": "Credit data fed to AI underwriter",           "status": "wip" },
+        { "from": "ai-underwriter",   "to": "instant-gateway", "text": "Confidence score calculated",                 "status": "wip" },
+        { "from": "instant-gateway",  "to": "instant-approve", "text": "High confidence: instant approval",           "status": "ready" },
+        { "from": "instant-approve",  "to": "end-approved",    "text": "Loan funded in under 1 minute",               "status": "ready" }
+      ]
+    }
+  ],
+
   "spec": {
     "schemaVersion": "2.0",
     "nodeInventory": [

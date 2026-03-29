@@ -1107,4 +1107,101 @@ export function initAnimation() {
       });
     });
   }
+
+  // ── Header playback buttons (flow animation along sequence steps) ──────
+  const btnPlayFlow = dom.btnPlayFlow;
+  const btnFfFlow   = dom.btnFfFlow;
+  const btnRewind   = dom.btnRewind;
+
+  function updateHeaderPlayIcon() {
+    if (!btnPlayFlow) return;
+    if (state.isPlaying && !state.isPaused) {
+      btnPlayFlow.textContent = '⏸';
+      btnPlayFlow.title = 'Pause flow animation';
+    } else {
+      btnPlayFlow.textContent = '▶';
+      btnPlayFlow.title = 'Animate flow sequence';
+    }
+  }
+
+  if (btnRewind) {
+    btnRewind.addEventListener('click', () => {
+      stopPlayback();
+      updateHeaderPlayIcon();
+    });
+  }
+
+  if (btnPlayFlow) {
+    btnPlayFlow.addEventListener('click', () => {
+      const sequence = state.activeSequence;
+      if (!sequence || sequence.length === 0) return;
+
+      if (!state.isPlaying) {
+        if (!state.layout || !state.layout.nodes) return;
+        state.isPlaying = true;
+        state.isPaused  = false;
+        state.stepIndex = 0;
+        clearAnimation();
+        createToken();
+        _updatePlayIcon();
+        _setNextButtonEnabled(false);
+        _setFfButtonEnabled(true);
+        updateHeaderPlayIcon();
+        animateStep(0);
+      } else {
+        state.isPaused = !state.isPaused;
+        _updatePlayIcon();
+        updateHeaderPlayIcon();
+        if (!state.isPaused) {
+          _setNextButtonEnabled(false);
+          animateStep(state.stepIndex);
+        } else {
+          if (_rafHandle != null) {
+            cancelAnimationFrame(_rafHandle);
+            _rafHandle = null;
+          }
+          _setNextButtonEnabled(true);
+        }
+      }
+    });
+  }
+
+  if (btnFfFlow) {
+    btnFfFlow.addEventListener('click', () => {
+      // Fast-forward: set very short delay and restart from current step
+      state.stepDelay = 200;
+      if (dom.delaySlider) dom.delaySlider.value = String(0.2);
+      if (dom.delayLabel)  dom.delayLabel.textContent = '0.2s';
+
+      const sequence = state.activeSequence;
+      if (!sequence || sequence.length === 0) return;
+
+      if (!state.isPlaying) {
+        if (!state.layout || !state.layout.nodes) return;
+        state.isPlaying = true;
+        state.isPaused  = false;
+        state.stepIndex = 0;
+        clearAnimation();
+        createToken();
+        _updatePlayIcon();
+        updateHeaderPlayIcon();
+        animateStep(0);
+      } else if (state.isPaused) {
+        state.isPaused = false;
+        _updatePlayIcon();
+        updateHeaderPlayIcon();
+        if (_rafHandle != null) {
+          cancelAnimationFrame(_rafHandle);
+          _rafHandle = null;
+        }
+        animateStep(state.stepIndex);
+      }
+    });
+  }
+
+  // Listen for flow-rewind custom event (from inline script fallback)
+  window.addEventListener('flow-rewind', () => {
+    stopPlayback();
+    updateHeaderPlayIcon();
+  });
 }

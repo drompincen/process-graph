@@ -79,7 +79,7 @@ export function initDom() {
     'phase-nav', 'phase-slider', 'phase-slider-container',
     'phase-dots-track', 'phase-current-label', 'btn-diff',
     'flow-selector',
-    'btn-play', 'btn-next', 'btn-ff',
+    'btn-play', 'btn-play-flow', 'btn-next', 'btn-ff', 'btn-ff-flow', 'btn-rewind',
     'btn-story',
     'btn-options', 'options-menu',
 

@@ -117,6 +117,12 @@ async function discoverDiagrams() {
 
   // Wire change handler
   sel.addEventListener('change', () => loadDiagramFile(sel.value));
+
+  // Auto-load first diagram on startup
+  if (diagrams.length > 0) {
+    sel.value = diagrams[0].file;
+    await loadDiagramFile(diagrams[0].file);
+  }
 }
 
 // ── Load diagram ───────────────────────────────────────────────
@@ -186,10 +192,11 @@ async function init() {
 
   await discoverDiagrams();
 
-  // Load initial diagram
-  const target = processFile || 'order-approval.json';
-  if (dom.jsonSelector) dom.jsonSelector.value = target;
-  await loadDiagramFile(target);
+  // If a URL param specifies a process, load it (overrides auto-load from discoverDiagrams)
+  if (processFile) {
+    if (dom.jsonSelector) dom.jsonSelector.value = processFile;
+    await loadDiagramFile(processFile);
+  }
 
   // Post-load hooks
   initInteractions();

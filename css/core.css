@@ -494,7 +494,7 @@ select:focus { outline: none; border-color: var(--accent); }
   .h-divider:first-of-type { display: none; }
   #phase-nav #phase-current-label { display: none; }
   #phase-slider-container { width: 100px; }
-  .font-controls { display: none; }
+  /* font controls moved to options panel */
 }
 
 @media (max-width: 640px) {
