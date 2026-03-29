@@ -1,24 +1,49 @@
 {
   "title": "IT Incident Response",
-  "description": "Improvement from manual on-call paging to automated alerting with priority routing",
-  "notes": "Process Owner: IT Operations\nLast Reviewed: 2024-Q2\nSLA Target: MTTR < 30 min (after)\nEscalation: it-ops@company.com",
+  "description": "4-phase transformation from manual phone-tree paging to AI-driven war room with auto-diagnosis and remediation",
+  "notes": "Process Owner: IT Operations\nLast Reviewed: 2026-Q1\nSLA Target: MTTR < 5 min (Phase 3)\nEscalation: it-ops@company.com",
 
   "metrics": {
-    "before": {
-      "stepCount": 6,
+    "phase0": {
+      "stepCount": 8,
       "mttrMinutes": 180,
-      "falsePositiveRate": "~30%",
+      "falsePositiveRate": "~35%",
       "escalationRate": "~60%",
-      "automationPct": 0
+      "automationPct": 0,
+      "postMortemRate": "~10%"
     },
-    "after": {
-      "stepCount": 4,
-      "mttrMinutes": 25,
+    "phase1": {
+      "stepCount": 7,
+      "mttrMinutes": 45,
+      "falsePositiveRate": "~18%",
+      "escalationRate": "~40%",
+      "automationPct": 30,
+      "postMortemRate": "~50%"
+    },
+    "phase2": {
+      "stepCount": 7,
+      "mttrMinutes": 18,
       "falsePositiveRate": "~5%",
-      "escalationRate": "~15%",
-      "automationPct": 75
+      "escalationRate": "~20%",
+      "automationPct": 60,
+      "postMortemRate": "~85%"
+    },
+    "phase3": {
+      "stepCount": 6,
+      "mttrMinutes": 4,
+      "falsePositiveRate": "~1%",
+      "escalationRate": "~8%",
+      "automationPct": 92,
+      "postMortemRate": "100%"
     }
   },
+
+  "phases": [
+    { "id": "phase0", "label": "0 -- Manual Paging",       "color": "#6b7280" },
+    { "id": "phase1", "label": "1 -- Automated Alerting",  "color": "#3b82f6" },
+    { "id": "phase2", "label": "2 -- Auto-Classification", "color": "#8b5cf6" },
+    { "id": "phase3", "label": "3 -- AI War Room",         "color": "#10b981" }
+  ],
 
   "lanes": [
     { "id": "monitor",     "label": "Monitoring System", "color": "#1e3a5f", "height": 130 },
@@ -28,119 +53,185 @@
   ],
 
   "nodes": [
-    { "id": "b-start",    "type": "start-event",  "label": "Start",               "lane": "monitor",     "x": 80,  "phase": "before" },
-    { "id": "b-alert",    "type": "task",          "label": "Detect Alert",        "lane": "monitor",     "x": 200, "phase": "before", "diff": "removed" },
-    { "id": "b-page",     "type": "task",          "label": "Page Engineer\n(Manual)", "lane": "oncall", "x": 340, "phase": "before", "diff": "removed" },
-    { "id": "b-assess",   "type": "task",          "label": "Assess\nSeverity",    "lane": "oncall",      "x": 480, "phase": "before" },
-    { "id": "b-gateway",  "type": "gateway",       "label": "P1?",                 "lane": "oncall",      "x": 620, "phase": "before" },
-    { "id": "b-war-room", "type": "task",          "label": "Assemble\nWar Room",  "lane": "team",        "x": 760, "phase": "before" },
-    { "id": "b-resolve",  "type": "task",          "label": "Resolve\nIncident",   "lane": "oncall",      "x": 760, "phase": "before" },
-    { "id": "b-end",      "type": "end-event",     "label": "Resolved",            "lane": "oncall",      "x": 900, "phase": "before" },
+    { "id": "start",            "type": "start-event",        "label": "Incident\nDetected",         "lane": "monitor",     "x": 100 },
 
-    { "id": "a-start",        "type": "start-event",        "label": "Start",                  "lane": "monitor",     "x": 80,  "phase": "after" },
-    { "id": "a-auto-detect",  "type": "task",               "label": "Auto-Detect\n& Classify", "lane": "monitor",    "x": 220, "phase": "after", "diff": "added", "state": "automated" },
-    { "id": "a-gateway-sev",  "type": "gateway",            "label": "Severity?",              "lane": "monitor",     "x": 380, "phase": "after" },
-    { "id": "a-page-p1",      "type": "task",               "label": "Page P1\nTeam",          "lane": "oncall",      "x": 520, "phase": "after", "diff": "added", "state": "automated" },
-    { "id": "a-war-room",     "type": "task",               "label": "War Room\nConvened",     "lane": "team",        "x": 660, "phase": "after" },
-    { "id": "a-notify",       "type": "intermediate-event", "label": "Notify\nStakeholders",   "lane": "stakeholder", "x": 660, "phase": "after" },
-    { "id": "a-resolve",      "type": "task",               "label": "Resolve\nIncident",      "lane": "oncall",      "x": 800, "phase": "after" },
-    { "id": "a-post-mortem",  "type": "task",               "label": "Post-Mortem",            "lane": "team",        "x": 940, "phase": "after" },
-    { "id": "a-end",          "type": "end-event",          "label": "Closed",                 "lane": "oncall",      "x": 1060, "phase": "after" }
+    { "id": "manual-check",     "type": "task",               "label": "Check Dashboard\n(Manual)",  "lane": "monitor",     "x": 260,  "phase": ["phase0"] },
+    { "id": "phone-tree",       "type": "task",               "label": "Phone Tree\nPaging",         "lane": "oncall",      "x": 420,  "phase": ["phase0"] },
+    { "id": "manual-assess",    "type": "task",               "label": "Assess Severity\n(Manual)",  "lane": "oncall",      "x": 580,  "phase": ["phase0"] },
+
+    { "id": "pagerduty-alert",  "type": "task",               "label": "PagerDuty\nAlert Routing",   "lane": "monitor",     "x": 260,  "phase": ["phase1", "phase2"], "state": "automated" },
+    { "id": "basic-dashboard",  "type": "task",               "label": "View Alert\nDashboard",      "lane": "oncall",      "x": 420,  "phase": ["phase1", "phase2"] },
+    { "id": "manual-classify",  "type": "task",               "label": "Classify Severity\n(Manual)","lane": "oncall",      "x": 580,  "phase": ["phase1"] },
+
+    { "id": "ai-classify",      "type": "task",               "label": "AI Severity\nClassification","lane": "monitor",     "x": 420,  "phase": ["phase2"], "state": "automated" },
+    { "id": "runbook-suggest",  "type": "task",               "label": "Auto-Runbook\nSuggestion",   "lane": "monitor",     "x": 580,  "phase": ["phase2", "phase3"], "state": "automated" },
+    { "id": "sla-tracker",      "type": "intermediate-event", "label": "SLA Timer\nStarted",         "lane": "stakeholder", "x": 580,  "phase": ["phase2"] },
+
+    { "id": "ai-commander",     "type": "agent",              "label": "AI Incident\nCommander",     "lane": "monitor",     "x": 260,  "phase": "phase3", "state": "automated" },
+    { "id": "auto-diagnose",    "type": "task",               "label": "Auto-Diagnosis",             "lane": "monitor",     "x": 420,  "phase": "phase3", "state": "automated" },
+    { "id": "auto-remediate",   "type": "task",               "label": "Auto-Remediate",             "lane": "monitor",     "x": 580,  "phase": "phase3", "state": "automated" },
+
+    { "id": "severity-gw",      "type": "gateway",            "label": "P1?",                        "lane": "oncall",      "x": 720 },
+    { "id": "war-room",         "type": "task",               "label": "Assemble\nWar Room",         "lane": "team",        "x": 860,  "phase": ["phase0", "phase1", "phase2"] },
+    { "id": "ai-war-room",      "type": "task",               "label": "AI War Room\n(Auto-Convene)","lane": "team",        "x": 860,  "phase": "phase3", "state": "automated" },
+    { "id": "resolve",          "type": "task",               "label": "Resolve\nIncident",          "lane": "oncall",      "x": 1000 },
+    { "id": "notify-stake",     "type": "intermediate-event", "label": "Notify\nStakeholders",       "lane": "stakeholder", "x": 1000, "phase": "phase1" },
+    { "id": "post-mortem",      "type": "task",               "label": "Post-Mortem",                "lane": "team",        "x": 1140, "phase": ["phase1", "phase2"] },
+    { "id": "auto-post-mortem", "type": "task",               "label": "AI Post-Mortem\nGeneration", "lane": "team",        "x": 1140, "phase": "phase3", "state": "automated" },
+    { "id": "end",              "type": "end-event",           "label": "Closed",                     "lane": "oncall",      "x": 1200 }
   ],
 
   "connections": [
-    { "id": "b-c1", "from": "b-start",    "to": "b-alert",    "type": "sequence",    "phase": "before" },
-    { "id": "b-c2", "from": "b-alert",    "to": "b-page",     "type": "message",     "phase": "before" },
-    { "id": "b-c3", "from": "b-page",     "to": "b-assess",   "type": "sequence",    "phase": "before" },
-    { "id": "b-c4", "from": "b-assess",   "to": "b-gateway",  "type": "sequence",    "phase": "before" },
-    { "id": "b-c5", "from": "b-gateway",  "to": "b-war-room", "type": "sequence",    "phase": "before", "decision": "yes", "label": "P1" },
-    { "id": "b-c6", "from": "b-gateway",  "to": "b-resolve",  "type": "sequence",    "phase": "before", "decision": "no",  "label": "P2/P3" },
-    { "id": "b-c7", "from": "b-war-room", "to": "b-resolve",  "type": "sequence",    "phase": "before" },
-    { "id": "b-c8", "from": "b-resolve",  "to": "b-end",      "type": "sequence",    "phase": "before" },
+    { "id": "c-start-manual",       "from": "start",           "to": "manual-check",     "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-manual-phone",       "from": "manual-check",    "to": "phone-tree",       "type": "message",     "phase": ["phase0"] },
+    { "id": "c-phone-assess",       "from": "phone-tree",      "to": "manual-assess",    "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-assess-gw",          "from": "manual-assess",   "to": "severity-gw",      "type": "sequence",    "phase": ["phase0"] },
 
-    { "id": "a-c1", "from": "a-start",       "to": "a-auto-detect", "type": "sequence", "phase": "after" },
-    { "id": "a-c2", "from": "a-auto-detect", "to": "a-gateway-sev", "type": "sequence", "phase": "after" },
-    { "id": "a-c3", "from": "a-gateway-sev", "to": "a-page-p1",     "type": "sequence", "phase": "after", "decision": "yes", "label": "P1" },
-    { "id": "a-c4", "from": "a-page-p1",     "to": "a-war-room",    "type": "sequence", "phase": "after" },
-    { "id": "a-c5", "from": "a-war-room",    "to": "a-notify",      "type": "message",  "phase": "after" },
-    { "id": "a-c6", "from": "a-war-room",    "to": "a-resolve",     "type": "sequence", "phase": "after" },
-    { "id": "a-c7", "from": "a-resolve",     "to": "a-post-mortem", "type": "sequence", "phase": "after" },
-    { "id": "a-c8", "from": "a-post-mortem", "to": "a-end",         "type": "sequence", "phase": "after" },
-    { "id": "a-c9", "from": "a-gateway-sev", "to": "a-resolve",     "type": "sequence", "phase": "after", "decision": "no", "label": "P2/P3" }
+    { "id": "c-start-pager",        "from": "start",           "to": "pagerduty-alert",  "type": "sequence",    "phase": ["phase1", "phase2"] },
+    { "id": "c-pager-dash",         "from": "pagerduty-alert", "to": "basic-dashboard",  "type": "sequence",    "phase": ["phase1", "phase2"] },
+    { "id": "c-dash-classify",      "from": "basic-dashboard", "to": "manual-classify",  "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-classify-gw",        "from": "manual-classify", "to": "severity-gw",      "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-dash-aiclass",       "from": "basic-dashboard", "to": "ai-classify",      "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-aiclass-runbook",    "from": "ai-classify",     "to": "runbook-suggest",  "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-diagnose-runbook",   "from": "auto-diagnose",   "to": "runbook-suggest",  "type": "message",     "phase": "phase3" },
+    { "id": "c-runbook-gw",         "from": "runbook-suggest", "to": "severity-gw",      "type": "sequence",    "phase": ["phase2", "phase3"] },
+    { "id": "c-aiclass-sla",        "from": "ai-classify",     "to": "sla-tracker",      "type": "message",     "phase": ["phase2"] },
+
+    { "id": "c-start-commander",    "from": "start",           "to": "ai-commander",     "type": "sequence",    "phase": "phase3" },
+    { "id": "c-commander-diagnose", "from": "ai-commander",    "to": "auto-diagnose",    "type": "sequence",    "phase": "phase3" },
+    { "id": "c-diagnose-remediate", "from": "auto-diagnose",   "to": "auto-remediate",   "type": "sequence",    "phase": "phase3" },
+    { "id": "c-remediate-gw",       "from": "auto-remediate",  "to": "severity-gw",      "type": "sequence",    "phase": "phase3" },
+
+    { "id": "c-gw-war",             "from": "severity-gw",     "to": "war-room",         "type": "sequence",    "phase": ["phase0", "phase1", "phase2"], "decision": "yes", "label": "P1" },
+    { "id": "c-gw-aiwar",           "from": "severity-gw",     "to": "ai-war-room",      "type": "sequence",    "phase": "phase3", "decision": "yes", "label": "P1" },
+    { "id": "c-gw-resolve",         "from": "severity-gw",     "to": "resolve",          "type": "sequence",    "decision": "no",  "label": "P2/P3" },
+    { "id": "c-war-resolve",        "from": "war-room",        "to": "resolve",          "type": "sequence",    "phase": ["phase0", "phase1", "phase2"] },
+    { "id": "c-aiwar-resolve",      "from": "ai-war-room",     "to": "resolve",          "type": "sequence",    "phase": "phase3" },
+    { "id": "c-war-notify",         "from": "war-room",        "to": "notify-stake",     "type": "message",     "phase": ["phase1", "phase2"] },
+    { "id": "c-aiwar-notify",       "from": "ai-war-room",     "to": "notify-stake",     "type": "message",     "phase": "phase3" },
+    { "id": "c-resolve-pm",         "from": "resolve",         "to": "post-mortem",      "type": "sequence",    "phase": ["phase1", "phase2"] },
+    { "id": "c-resolve-autopm",     "from": "resolve",         "to": "auto-post-mortem", "type": "sequence",    "phase": "phase3" },
+    { "id": "c-resolve-end",        "from": "resolve",         "to": "end",              "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-pm-end",             "from": "post-mortem",     "to": "end",              "type": "sequence",    "phase": ["phase1", "phase2"] },
+    { "id": "c-autopm-end",         "from": "auto-post-mortem","to": "end",              "type": "sequence",    "phase": "phase3" },
+    { "id": "c-notify-end",         "from": "notify-stake",    "to": "end",              "type": "sequence",    "phase": "phase1" },
+    { "id": "c-sla-end",            "from": "sla-tracker",     "to": "end",              "type": "message",     "phase": ["phase2"], "style": "dashed" }
   ],
 
   "sequence": [
-    { "from": "a-start",       "to": "a-auto-detect", "text": "Monitor detects anomaly",      "status": "ready" },
-    { "from": "a-auto-detect", "to": "a-gateway-sev", "text": "Classified as P1 — Critical",  "status": "wip",
-      "popup": { "type": "issue", "msg": "P1 Critical: 95% confidence" } },
-    { "from": "a-gateway-sev", "to": "a-page-p1",     "text": "Auto-paging P1 team",          "status": "ready" },
-    { "from": "a-page-p1",     "to": "a-war-room",    "text": "War room convened in 3min",    "status": "ready" },
-    { "from": "a-war-room",    "to": "a-resolve",     "text": "Incident being resolved",      "status": "wip" },
-    { "from": "a-resolve",     "to": "a-post-mortem", "text": "Resolved — scheduling review", "status": "ready",
-      "popup": { "type": "amplify", "msg": "MTTR: 25 minutes" } }
+    { "from": "start",          "to": "ai-commander",    "text": "Anomaly detected by monitoring",           "status": "ready" },
+    { "from": "ai-commander",   "to": "auto-diagnose",   "text": "AI commander takes over triage",           "status": "ready" },
+    { "from": "auto-diagnose",  "to": "auto-remediate",  "text": "Root cause identified automatically",      "status": "wip",
+      "popup": { "type": "issue", "msg": "P1 Critical: 99% confidence — DB connection pool exhaustion" } },
+    { "from": "auto-remediate", "to": "severity-gw",     "text": "Auto-remediation attempted",               "status": "ready" },
+    { "from": "severity-gw",    "to": "ai-war-room",     "text": "P1 escalated — AI convenes war room",      "status": "ready" },
+    { "from": "ai-war-room",    "to": "resolve",         "text": "War room resolves remaining issues",       "status": "wip" },
+    { "from": "resolve",        "to": "auto-post-mortem","text": "Resolved — AI generates post-mortem",      "status": "ready",
+      "popup": { "type": "amplify", "msg": "MTTR: 4 minutes — AI-driven" } }
   ],
 
   "spec": {
-    "schemaVersion": "1.0",
-    "description": "IT incident response: manual on-call paging (before) vs. automated severity-based alerting with structured war-room process (after).",
+    "schemaVersion": "2.0",
+    "description": "IT incident response evolving across 4 phases: manual phone-tree paging (phase0), PagerDuty automated alerting (phase1), AI severity classification with SLA tracking (phase2), and full AI war room with auto-diagnosis and remediation (phase3).",
     "nodeInventory": [
-      { "id": "b-start",    "type": "start-event", "lane": "monitor",     "phase": "before", "role": "Triggers the before-state incident response process",                        "critical": true  },
-      { "id": "b-alert",    "type": "task",         "lane": "monitor",     "phase": "before", "role": "Engineer manually reviews monitoring dashboard to detect alert",              "critical": true  },
-      { "id": "b-page",     "type": "task",         "lane": "oncall",      "phase": "before", "role": "On-call manually paged via phone or email — prone to delays",               "critical": true  },
-      { "id": "b-assess",   "type": "task",         "lane": "oncall",      "phase": "before", "role": "Engineer manually assesses severity without tooling support",                "critical": true  },
-      { "id": "b-gateway",  "type": "gateway",      "lane": "oncall",      "phase": "before", "role": "Decision split: P1 triggers war room, P2/P3 handled by on-call alone",      "critical": true  },
-      { "id": "b-war-room", "type": "task",         "lane": "team",        "phase": "before", "role": "Response team assembled manually for P1 critical incidents",                 "critical": false },
-      { "id": "b-resolve",  "type": "task",         "lane": "oncall",      "phase": "before", "role": "Incident resolved by on-call with or without war room support",              "critical": true  },
-      { "id": "b-end",      "type": "end-event",    "lane": "oncall",      "phase": "before", "role": "Incident marked resolved — no structured follow-up",                         "critical": false },
-      { "id": "a-start",       "type": "start-event",        "lane": "monitor",     "phase": "after", "role": "Triggers the after-state automated incident response process",         "critical": true  },
-      { "id": "a-auto-detect", "type": "task",               "lane": "monitor",     "phase": "after", "role": "ML-based anomaly detection and automatic severity classification",      "critical": true  },
-      { "id": "a-gateway-sev", "type": "gateway",            "lane": "monitor",     "phase": "after", "role": "Routes P1 to war room path, P2/P3 direct to on-call resolution",       "critical": true  },
-      { "id": "a-page-p1",     "type": "task",               "lane": "oncall",      "phase": "after", "role": "Automated paging of P1 response team via PagerDuty integration",       "critical": true  },
-      { "id": "a-war-room",    "type": "task",               "lane": "team",        "phase": "after", "role": "Response team convened automatically in incident channel",              "critical": true  },
-      { "id": "a-notify",      "type": "intermediate-event", "lane": "stakeholder", "phase": "after", "role": "Automated status notification broadcast to stakeholders",               "critical": false },
-      { "id": "a-resolve",     "type": "task",               "lane": "oncall",      "phase": "after", "role": "Incident resolved with full tooling and team support",                 "critical": true  },
-      { "id": "a-post-mortem", "type": "task",               "lane": "team",        "phase": "after", "role": "Structured blameless post-mortem scheduled and conducted",             "critical": true  },
-      { "id": "a-end",         "type": "end-event",          "lane": "oncall",      "phase": "after", "role": "Incident closed with full audit trail and post-mortem artefacts",       "critical": false }
+      { "id": "start",            "type": "start-event",        "lane": "monitor",     "phase": "all",    "role": "Triggers incident response when anomaly detected",                           "critical": true  },
+      { "id": "manual-check",     "type": "task",               "lane": "monitor",     "phase": "phase0", "role": "Engineer manually scans monitoring dashboard for alerts",                     "critical": true  },
+      { "id": "phone-tree",       "type": "task",               "lane": "oncall",      "phase": "phase0", "role": "On-call paged via manual phone tree — slow, error-prone",                    "critical": true  },
+      { "id": "manual-assess",    "type": "task",               "lane": "oncall",      "phase": "phase0", "role": "Severity assessed manually without tooling — subjective and inconsistent",    "critical": true  },
+      { "id": "pagerduty-alert",  "type": "task",               "lane": "monitor",     "phase": "phase1+","role": "PagerDuty integration routes alerts automatically to on-call rotations",      "critical": true  },
+      { "id": "basic-dashboard",  "type": "task",               "lane": "oncall",      "phase": "phase1-2","role": "Engineer views structured alert dashboard with context and history",          "critical": true  },
+      { "id": "manual-classify",  "type": "task",               "lane": "oncall",      "phase": "phase1", "role": "Engineer manually classifies severity using dashboard data",                  "critical": true  },
+      { "id": "ai-classify",      "type": "task",               "lane": "monitor",     "phase": "phase2+","role": "AI model classifies severity with confidence score and historical correlation","critical": true  },
+      { "id": "runbook-suggest",  "type": "task",               "lane": "monitor",     "phase": "phase2-3","role": "System suggests relevant runbooks based on incident classification",          "critical": false },
+      { "id": "sla-tracker",      "type": "intermediate-event", "lane": "stakeholder", "phase": "phase2+","role": "SLA countdown timer started — stakeholders track resolution progress",        "critical": false },
+      { "id": "ai-commander",     "type": "agent",              "lane": "monitor",     "phase": "phase3", "role": "AI incident commander orchestrates full triage and response automatically",    "critical": true  },
+      { "id": "auto-diagnose",    "type": "task",               "lane": "monitor",     "phase": "phase3", "role": "Automated root-cause analysis using logs, metrics, and trace correlation",     "critical": true  },
+      { "id": "auto-remediate",   "type": "task",               "lane": "monitor",     "phase": "phase3", "role": "Automated remediation applied — rollback, scale-out, config fix",              "critical": true  },
+      { "id": "severity-gw",      "type": "gateway",            "lane": "oncall",      "phase": "all",    "role": "Routes P1 to war room path, P2/P3 directly to resolution",                   "critical": true  },
+      { "id": "war-room",         "type": "task",               "lane": "team",        "phase": "phase0-2","role": "Response team manually assembled for P1 critical incidents",                  "critical": true  },
+      { "id": "ai-war-room",      "type": "task",               "lane": "team",        "phase": "phase3", "role": "AI auto-convenes war room with relevant engineers and context pre-loaded",     "critical": true  },
+      { "id": "resolve",          "type": "task",               "lane": "oncall",      "phase": "all",    "role": "Incident resolved — human or AI-assisted depending on phase",                 "critical": true  },
+      { "id": "notify-stake",     "type": "intermediate-event", "lane": "stakeholder", "phase": "phase1+","role": "Automated stakeholder notification with status updates",                      "critical": false },
+      { "id": "post-mortem",      "type": "task",               "lane": "team",        "phase": "phase1-2","role": "Manual blameless post-mortem scheduled and conducted after resolution",       "critical": true  },
+      { "id": "auto-post-mortem", "type": "task",               "lane": "team",        "phase": "phase3", "role": "AI generates comprehensive post-mortem with timeline and recommendations",     "critical": true  },
+      { "id": "end",              "type": "end-event",           "lane": "oncall",      "phase": "all",    "role": "Incident formally closed with audit trail",                                   "critical": false }
     ],
     "connectionInventory": [
-      { "id": "b-c1", "from": "b-start",    "to": "b-alert",    "semantics": "Monitoring system begins — engineer watches dashboard" },
-      { "id": "b-c2", "from": "b-alert",    "to": "b-page",     "semantics": "Alert identified — on-call paged manually via phone/email" },
-      { "id": "b-c3", "from": "b-page",     "to": "b-assess",   "semantics": "On-call engineer receives page and begins assessment" },
-      { "id": "b-c4", "from": "b-assess",   "to": "b-gateway",  "semantics": "Severity assessment complete — routed to priority gateway" },
-      { "id": "b-c5", "from": "b-gateway",  "to": "b-war-room", "semantics": "P1 critical — war room assembled", "conditions": "Severity classified as P1" },
-      { "id": "b-c6", "from": "b-gateway",  "to": "b-resolve",  "semantics": "P2/P3 — on-call handles directly", "conditions": "Severity classified as P2 or P3" },
-      { "id": "b-c7", "from": "b-war-room", "to": "b-resolve",  "semantics": "War room feeds into resolution effort" },
-      { "id": "b-c8", "from": "b-resolve",  "to": "b-end",      "semantics": "Incident resolved — process terminates" },
-      { "id": "a-c1", "from": "a-start",       "to": "a-auto-detect", "semantics": "Automated monitoring begins continuous anomaly scanning" },
-      { "id": "a-c2", "from": "a-auto-detect", "to": "a-gateway-sev", "semantics": "ML classifier assigns severity and confidence score" },
-      { "id": "a-c3", "from": "a-gateway-sev", "to": "a-page-p1",     "semantics": "P1 detected — automated paging triggered immediately", "conditions": "Severity = P1" },
-      { "id": "a-c4", "from": "a-page-p1",     "to": "a-war-room",    "semantics": "P1 team paged — war room channel auto-created" },
-      { "id": "a-c5", "from": "a-war-room",    "to": "a-notify",      "semantics": "War room active — stakeholders automatically notified" },
-      { "id": "a-c6", "from": "a-war-room",    "to": "a-resolve",     "semantics": "War room drives resolution activity" },
-      { "id": "a-c7", "from": "a-resolve",     "to": "a-post-mortem", "semantics": "Incident resolved — post-mortem automatically scheduled" },
-      { "id": "a-c8", "from": "a-post-mortem", "to": "a-end",         "semantics": "Post-mortem complete — incident formally closed" },
-      { "id": "a-c9", "from": "a-gateway-sev", "to": "a-resolve",     "semantics": "P2/P3 routed directly to resolution — no war room needed", "conditions": "Severity = P2 or P3" }
+      { "id": "c-start-manual",       "from": "start",           "to": "manual-check",     "semantics": "Phase 0: monitoring triggers manual dashboard check" },
+      { "id": "c-manual-phone",       "from": "manual-check",    "to": "phone-tree",       "semantics": "Alert found — engineer calls phone tree to page on-call" },
+      { "id": "c-phone-assess",       "from": "phone-tree",      "to": "manual-assess",    "semantics": "On-call responds — begins manual severity assessment" },
+      { "id": "c-assess-gw",          "from": "manual-assess",   "to": "severity-gw",      "semantics": "Assessment complete — routed to severity gateway" },
+      { "id": "c-start-pager",        "from": "start",           "to": "pagerduty-alert",  "semantics": "Phase 1-2: alert auto-routed through PagerDuty" },
+      { "id": "c-pager-dash",         "from": "pagerduty-alert", "to": "basic-dashboard",  "semantics": "PagerDuty dispatches — engineer views alert dashboard" },
+      { "id": "c-dash-classify",      "from": "basic-dashboard", "to": "manual-classify",  "semantics": "Phase 1: engineer manually classifies from dashboard" },
+      { "id": "c-classify-gw",        "from": "manual-classify", "to": "severity-gw",      "semantics": "Classification done — severity routed to gateway" },
+      { "id": "c-dash-aiclass",       "from": "basic-dashboard", "to": "ai-classify",      "semantics": "Phase 2: dashboard feeds AI classifier for auto-severity" },
+      { "id": "c-aiclass-runbook",    "from": "ai-classify",     "to": "runbook-suggest",  "semantics": "AI classification triggers runbook recommendation" },
+      { "id": "c-runbook-gw",         "from": "runbook-suggest", "to": "severity-gw",      "semantics": "Runbook suggested — severity routed to gateway" },
+      { "id": "c-aiclass-sla",        "from": "ai-classify",     "to": "sla-tracker",      "semantics": "AI classification starts SLA countdown for stakeholders" },
+      { "id": "c-start-commander",    "from": "start",           "to": "ai-commander",     "semantics": "Phase 3: AI commander immediately takes over triage" },
+      { "id": "c-commander-diagnose", "from": "ai-commander",    "to": "auto-diagnose",    "semantics": "Commander initiates automated root-cause diagnosis" },
+      { "id": "c-diagnose-remediate", "from": "auto-diagnose",   "to": "auto-remediate",   "semantics": "Diagnosis complete — auto-remediation attempted" },
+      { "id": "c-remediate-gw",       "from": "auto-remediate",  "to": "severity-gw",      "semantics": "Remediation result evaluated — escalation check" },
+      { "id": "c-gw-war",             "from": "severity-gw",     "to": "war-room",         "semantics": "P1 critical — manual war room assembled",              "conditions": "Severity = P1, Phase 0-2" },
+      { "id": "c-gw-aiwar",           "from": "severity-gw",     "to": "ai-war-room",      "semantics": "P1 critical — AI auto-convenes war room",              "conditions": "Severity = P1, Phase 3" },
+      { "id": "c-gw-resolve",         "from": "severity-gw",     "to": "resolve",          "semantics": "P2/P3 routed directly to on-call resolution",          "conditions": "Severity = P2 or P3" },
+      { "id": "c-war-resolve",        "from": "war-room",        "to": "resolve",          "semantics": "War room drives resolution for Phase 0-2" },
+      { "id": "c-aiwar-resolve",      "from": "ai-war-room",     "to": "resolve",          "semantics": "AI war room drives resolution for Phase 3" },
+      { "id": "c-war-notify",         "from": "war-room",        "to": "notify-stake",     "semantics": "War room triggers stakeholder notification (Phase 1-2)" },
+      { "id": "c-aiwar-notify",       "from": "ai-war-room",     "to": "notify-stake",     "semantics": "AI war room auto-notifies stakeholders (Phase 3)" },
+      { "id": "c-resolve-pm",         "from": "resolve",         "to": "post-mortem",      "semantics": "Resolution triggers manual post-mortem (Phase 1-2)" },
+      { "id": "c-resolve-autopm",     "from": "resolve",         "to": "auto-post-mortem", "semantics": "Resolution triggers AI post-mortem generation (Phase 3)" },
+      { "id": "c-resolve-end",        "from": "resolve",         "to": "end",              "semantics": "Phase 0: resolve goes directly to close (no post-mortem)" },
+      { "id": "c-pm-end",             "from": "post-mortem",     "to": "end",              "semantics": "Post-mortem complete — incident closed (Phase 1-2)" },
+      { "id": "c-autopm-end",         "from": "auto-post-mortem","to": "end",              "semantics": "AI post-mortem generated — incident closed (Phase 3)" },
+      { "id": "c-notify-end",         "from": "notify-stake",    "to": "end",              "semantics": "Stakeholder notification dispatched — feeds into close" },
+      { "id": "c-sla-end",            "from": "sla-tracker",     "to": "end",              "semantics": "SLA tracker resolves when incident closed" }
     ],
     "behaviors": [
       {
-        "id": "beh-severity-routing",
-        "trigger": "Monitor detects anomaly",
-        "expectedOutcome": "Auto-classifier routes P1 to war room, P2/P3 direct to on-call",
-        "involvedNodes": ["a-auto-detect", "a-gateway-sev"],
-        "testRef": "J5-S1"
+        "id": "beh-phase0-manual-flow",
+        "trigger": "Phase slider at 0",
+        "expectedOutcome": "Only manual paging path visible: start -> manual-check -> phone-tree -> manual-assess -> severity-gw -> war-room/resolve -> end",
+        "involvedNodes": ["start", "manual-check", "phone-tree", "manual-assess", "severity-gw", "war-room", "resolve", "end"],
+        "testRef": "IR-P0"
       },
       {
-        "id": "beh-no-overlap",
-        "trigger": "User drags a-resolve onto a-post-mortem position",
-        "expectedOutcome": "Drag resolves to nearest free grid cell",
-        "involvedNodes": ["a-resolve", "a-post-mortem"],
-        "testRef": "J14-S5"
+        "id": "beh-phase1-pagerduty",
+        "trigger": "Phase slider at 1",
+        "expectedOutcome": "PagerDuty path visible with manual classification, stakeholder notifications, and post-mortem added",
+        "involvedNodes": ["start", "pagerduty-alert", "basic-dashboard", "manual-classify", "severity-gw", "war-room", "resolve", "notify-stake", "post-mortem", "end"],
+        "testRef": "IR-P1"
+      },
+      {
+        "id": "beh-phase2-aiclass",
+        "trigger": "Phase slider at 2",
+        "expectedOutcome": "AI classification replaces manual, runbook suggestions and SLA tracking appear",
+        "involvedNodes": ["start", "pagerduty-alert", "basic-dashboard", "ai-classify", "runbook-suggest", "sla-tracker", "severity-gw", "war-room", "resolve", "notify-stake", "post-mortem", "end"],
+        "testRef": "IR-P2"
+      },
+      {
+        "id": "beh-phase3-aiwar",
+        "trigger": "Phase slider at 3",
+        "expectedOutcome": "Full AI pipeline: commander -> diagnose -> remediate, AI war room, auto post-mortem generation",
+        "involvedNodes": ["start", "ai-commander", "auto-diagnose", "auto-remediate", "runbook-suggest", "severity-gw", "ai-war-room", "resolve", "notify-stake", "auto-post-mortem", "end"],
+        "testRef": "IR-P3"
+      },
+      {
+        "id": "beh-severity-routing",
+        "trigger": "Severity gateway evaluated at any phase",
+        "expectedOutcome": "P1 always routes to war room (manual or AI), P2/P3 always routes direct to resolve",
+        "involvedNodes": ["severity-gw", "war-room", "ai-war-room", "resolve"],
+        "testRef": "IR-GW"
       }
     ],
     "invariants": [
-      "Every path from start eventually reaches Closed end-event",
-      "P1 path always involves war room convening",
-      "No two node bounding boxes overlap",
+      "Every path from start reaches end in all four phases",
+      "P1 path always involves a war room (manual in phase 0-2, AI in phase 3)",
+      "P2/P3 path always routes directly to resolve without war room",
+      "No two node bounding boxes overlap within the same phase",
+      "Post-mortem exists in phase 1+ (manual in 1-2, AI-generated in 3)",
+      "Stakeholder notifications exist in phase 1+ only",
       "All node x coordinates are multiples of 20"
     ]
   }

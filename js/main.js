@@ -5,6 +5,7 @@
 
 import { state, dom, initDom } from './state.js';
 import { parseGraph, resolveActiveSequence } from './data.js';
+import { normalizePhases, isVisibleAtPhase, getDiffStatus } from './phase.js';
 import { DEFAULT_JSON } from './constants.js';
 
 // ── Lazy imports (stubbed until implemented) ───────────────────
@@ -18,12 +19,9 @@ let initSequenceView = () => {};
 let initMetrics      = () => {};
 let initBenefits     = () => {};
 let initExport       = () => {};
-let initValidationUI = () => {};
-let refreshValidationBadges = () => {};
 let renderMinimap    = () => {};
 let initMinimap      = () => {};
 let onPostRender     = () => {};
-let initVersioning   = () => {};
 let initComments     = () => {};
 
 // Attempt to load real modules if they exist
@@ -80,20 +78,9 @@ async function loadModules() {
   } catch { /* not yet implemented */ }
 
   try {
-    const v = await import('./validation-ui.js');
-    initValidationUI = v.initValidationUI;
-    refreshValidationBadges = v.refreshValidationBadges || (() => {});
-  } catch { /* not yet implemented */ }
-
-  try {
     const mm = await import('./minimap.js');
     renderMinimap = mm.renderMinimap;
     initMinimap   = mm.initMinimap;
-  } catch { /* not yet implemented */ }
-
-  try {
-    const ver = await import('./versioning.js');
-    initVersioning = ver.initVersioning;
   } catch { /* not yet implemented */ }
 
   try {
@@ -113,6 +100,7 @@ async function discoverDiagrams() {
     { file: 'expense-claim.json',             label: 'Expense Claim' },
     { file: 'manufacturing-fulfillment.json', label: 'Manufacturing Order Fulfillment' },
     { file: 'lean-six-sigma.json',            label: 'Lean Six Sigma — Warranty Claims' },
+    { file: 'car-loan.json',                  label: 'Auto Loan Application' },
   ];
 
   let diagrams = fallback;
@@ -147,6 +135,17 @@ export async function loadDiagramFile(filename) {
     const graph = parseGraph(text);
     state.graph = graph;
     state.activeSequence = resolveActiveSequence(graph, null, null);
+
+    // ── Initialize multi-phase state ───────────────────────────────────────
+    const phases = normalizePhases(graph);
+    if (phases.length > 2) {
+      // Multi-phase graph: reset phase index to baseline (0)
+      state.currentPhaseIndex = 0;
+    } else {
+      // Legacy two-phase graph: keep currentPhaseIndex at 0 (maps to "before")
+      state.currentPhaseIndex = 0;
+    }
+
     if (dom.jsonEditor) dom.jsonEditor.value = JSON.stringify(graph, null, 2);
     renderAll(graph);
     initDiff(graph);
@@ -207,9 +206,7 @@ async function init() {
   initMetrics(state.graph);
   initBenefits(state.graph);
   initExport();
-  initValidationUI();
   initMinimap();
-  initVersioning();
   initComments();
 
   // Wire minimap rendering into the post-render cycle

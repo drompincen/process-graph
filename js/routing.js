@@ -11,6 +11,7 @@
 import { detectDirection, getConnectionPoints, getPortPosition } from './layout.js';
 import { state, dom } from './state.js';
 import { isVisible } from './data.js';
+import { normalizePhases, isVisibleAtPhase } from './phase.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,34 @@ function safeMidX(defaultMidX, minY, maxY, fromId, toId) {
     if (!blocked) break;
   }
   return midX;
+}
+
+/**
+ * Find a midY for V-H-V routing that avoids all non-connected nodes.
+ * Checks if the default midY would land inside any node's padded bounds
+ * in the horizontal range [minX, maxX], and shifts it if needed.
+ */
+function safeMidY(defaultMidY, minX, maxX, fromId, toId) {
+  if (!_currentNodesMap) return defaultMidY;
+  let midY = defaultMidY;
+  for (let iter = 0; iter < 5; iter++) {
+    let blocked = false;
+    for (const [id, bounds] of Object.entries(_currentNodesMap)) {
+      if (id === fromId || id === toId) continue;
+      const padL = bounds.left - ARROW_PADDING;
+      const padR = bounds.right + ARROW_PADDING;
+      const padT = bounds.top - ARROW_PADDING;
+      const padB = bounds.bottom + ARROW_PADDING;
+      if (padR < minX || padL > maxX) continue; // outside x range
+      if (midY > padT && midY < padB) {
+        // midY is inside this node — push to nearest edge
+        midY = Math.abs(midY - padT) <= Math.abs(midY - padB) ? padT : padB;
+        blocked = true;
+      }
+    }
+    if (!blocked) break;
+  }
+  return midY;
 }
 
 // Local svgEl — avoids circular dependency with renderer.js
@@ -153,10 +182,11 @@ function computeLabelPosition(pathD, conn) {
     const py = ay + (by - ay) * t;
 
     const isHorizontal = Math.abs(by - ay) < Math.abs(bx - ax);
-    const OFFSET = 14;
+    const OFFSET = 22;
+    const sign = conn.decision === 'no' ? 1 : -1;
     return {
-      labelX: px + (isHorizontal ? 0 : -OFFSET),
-      labelY: py + (isHorizontal ? -OFFSET : 0),
+      labelX: px + (isHorizontal ? 0 : sign * OFFSET),
+      labelY: py + (isHorizontal ? sign * OFFSET : 0),
     };
   }
 
@@ -589,6 +619,39 @@ export function straightHoriz(sx, sy, tx, ty, conn) {
 }
 
 /**
+ * Straight horizontal-left path for cross-lane connections where the target
+ * is to the left of the source. Routes: exit left edge of src, Z-bend
+ * (horizontal-vertical-horizontal), enter right edge of tgt.
+ * The arrow enters from the RIGHT, matching QA expectations.
+ *
+ * @param {number} sx - Source x (left edge of source).
+ * @param {number} sy - Source y.
+ * @param {number} tx - Target x (right edge of target).
+ * @param {number} ty - Target y.
+ * @param {object} conn - Connection object.
+ * @returns {{ pathD, arrowPoints, arrowFill, labelX, labelY, direction }}
+ */
+export function straightHorizLeft(sx, sy, tx, ty, conn) {
+  let pathD;
+  if (Math.abs(sy - ty) < 1) {
+    // Perfectly horizontal
+    pathD = `M ${sx},${sy} L ${tx + 9},${sy}`;
+  } else {
+    // Different y — Z-bend: horizontal, vertical, horizontal
+    const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
+    pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx + 9},${ty}`;
+  }
+  return {
+    pathD,
+    arrowPoints: arrowPolygon('left', tx, ty),
+    arrowFill: connColor(conn),
+    labelX: (sx + tx) / 2,
+    labelY: Math.min(sy, ty) - 10,
+    direction: 'left',
+  };
+}
+
+/**
  * Straight vertical path (same x-column, different lanes or same lane).
  * Handles both downward (sy < ty) and upward (sy > ty) directions.
  * The path stops 9px short of the target so the arrowhead tip is exact.
@@ -602,37 +665,51 @@ export function straightHoriz(sx, sy, tx, ty, conn) {
  */
 export function straightVert(sx, sy, tx, ty, conn) {
   if (sy < ty) {
-    // Downward
+    // Downward — enter target from TOP
     let pathD;
     if (Math.abs(sx - tx) < 1) {
       pathD = `M ${sx},${sy} L ${tx},${ty - 9}`;
     } else {
-      // Orthogonal L-bend: go vertical to target row, then horizontal
-      pathD = `M ${sx},${sy} L ${sx},${ty - 9} L ${tx},${ty - 9}`;
+      // L-bend: horizontal to target x, then vertical down to target top
+      // Check if horizontal segment at sy passes through any node
+      const safeY = safeMidY(sy, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+      if (Math.abs(safeY - sy) < 1) {
+        pathD = `M ${sx},${sy} L ${tx},${sy} L ${tx},${ty - 9}`;
+      } else {
+        // Route as V-H-V: vertical to safeY, horizontal to tx, vertical to target
+        pathD = `M ${sx},${sy} L ${sx},${safeY} L ${tx},${safeY} L ${tx},${ty - 9}`;
+      }
     }
     return {
       pathD,
       arrowPoints: arrowPolygon('down', tx, ty),
       arrowFill: connColor(conn),
-      labelX: sx + 8,
-      labelY: (sy + ty) / 2,
+      labelX: (sx + tx) / 2,
+      labelY: sy + 8,
       direction: 'down',
     };
   } else {
-    // Upward
+    // Upward — enter target from BOTTOM
     let pathD;
     if (Math.abs(sx - tx) < 1) {
       pathD = `M ${sx},${sy} L ${tx},${ty + 9}`;
     } else {
-      // Orthogonal L-bend: go vertical to target row, then horizontal
-      pathD = `M ${sx},${sy} L ${sx},${ty + 9} L ${tx},${ty + 9}`;
+      // L-bend: horizontal to target x, then vertical up to target bottom
+      // Check if horizontal segment at sy passes through any node
+      const safeY = safeMidY(sy, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+      if (Math.abs(safeY - sy) < 1) {
+        pathD = `M ${sx},${sy} L ${tx},${sy} L ${tx},${ty + 9}`;
+      } else {
+        // Route as V-H-V: vertical to safeY, horizontal to tx, vertical to target
+        pathD = `M ${sx},${sy} L ${sx},${safeY} L ${tx},${safeY} L ${tx},${ty + 9}`;
+      }
     }
     return {
       pathD,
       arrowPoints: arrowPolygon('up', tx, ty),
       arrowFill: connColor(conn),
-      labelX: sx + 8,
-      labelY: (sy + ty) / 2,
+      labelX: (sx + tx) / 2,
+      labelY: sy - 8,
       direction: 'up',
     };
   }
@@ -640,10 +717,10 @@ export function straightVert(sx, sy, tx, ty, conn) {
 
 /**
  * Cross-lane downward path (source lane index < target lane index).
- * Routes orthogonally: exit horizontally, then vertically, then horizontally
- * into the target — never cutting diagonally through lane bodies.
- *   Straight vertical when x is close (within 12px).
- *   Otherwise: M sx,sy -> L midX,sy -> L midX,ty -> L tx-9,ty  (enter from left)
+ * Routes orthogonally: exit vertically from source bottom, horizontal to
+ * target x column, then vertical into target top — always enters from TOP edge.
+ *   Straight vertical when x is close (within 1px).
+ *   Otherwise: M sx,sy -> L sx,midY -> L tx,midY -> L tx,ty-9
  */
 export function crossLaneDown(sx, sy, tx, ty, conn) {
   if (Math.abs(sx - tx) < 1) {
@@ -659,25 +736,23 @@ export function crossLaneDown(sx, sy, tx, ty, conn) {
     };
   }
 
-  // Route: exit horizontally from source, vertical transition, enter target horizontally
-  const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
-  const pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx - 9},${ty}`;
+  // Route: exit bottom of source, go vertical to midY, horizontal to target x,
+  // then vertical down into target top — always enters from TOP edge.
+  const rawMidY = (sy + ty) / 2;
+  const midY = safeMidY(rawMidY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+  const pathD = `M ${sx},${sy} L ${sx},${midY} L ${tx},${midY} L ${tx},${ty - 9}`;
   return {
     pathD,
-    arrowPoints: arrowPolygon('right', tx, ty),
+    arrowPoints: arrowPolygon('down', tx, ty),
     arrowFill: connColor(conn),
-    labelX: midX + 8,
-    labelY: (sy + ty) / 2,
+    labelX: (sx + tx) / 2,
+    labelY: midY - 8,
     direction: 'down',
   };
 }
 
 /**
  * Cross-lane upward path (source lane index > target lane index).
- * Routes orthogonally: exit horizontally, then vertically, then horizontally
- * into the target — never cutting diagonally through lane bodies.
- *   Straight vertical when x is close (within 12px).
- *   Otherwise: M sx,sy -> L midX,sy -> L midX,ty -> L tx-9,ty  (enter from left)
  */
 export function crossLaneUp(sx, sy, tx, ty, conn) {
   if (Math.abs(sx - tx) < 1) {
@@ -693,51 +768,59 @@ export function crossLaneUp(sx, sy, tx, ty, conn) {
     };
   }
 
-  // Route: exit horizontally from source, vertical transition, enter target horizontally
-  const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
-  const pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx - 9},${ty}`;
+  // Route: exit top of source, go vertical to midY, horizontal to target x,
+  // then vertical up into target bottom — always enters from BOTTOM edge.
+  const rawMidY = (sy + ty) / 2;
+  const midY = safeMidY(rawMidY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+  const pathD = `M ${sx},${sy} L ${sx},${midY} L ${tx},${midY} L ${tx},${ty + 9}`;
   return {
     pathD,
-    arrowPoints: arrowPolygon('right', tx, ty),
+    arrowPoints: arrowPolygon('up', tx, ty),
     arrowFill: connColor(conn),
-    labelX: midX + 8,
-    labelY: (sy + ty) / 2,
+    labelX: (sx + tx) / 2,
+    labelY: midY + 8,
     direction: 'up',
   };
 }
 
 /**
  * Elbow right-then-down path.
- * Route: exit horizontally, vertical transition at midX, enter target horizontally.
- *   M sx,sy -> L midX,sy -> L midX,ty -> L tx-9,ty
+ * Route: vertical from source to midY, horizontal to target x, vertical into target top.
+ *   M sx,sy -> L sx,midY -> L tx,midY -> L tx,ty-9
  */
 export function elbowRightDown(sx, sy, tx, ty, conn) {
-  const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
-  const pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx - 9},${ty}`;
+  // Route: exit bottom of source, vertical to midY, horizontal to target x,
+  // then vertical down into target top — always enters from TOP edge.
+  const rawMidY = (sy + ty) / 2;
+  const midY = safeMidY(rawMidY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+  const pathD = `M ${sx},${sy} L ${sx},${midY} L ${tx},${midY} L ${tx},${ty - 9}`;
   return {
     pathD,
-    arrowPoints: arrowPolygon('right', tx, ty),
+    arrowPoints: arrowPolygon('down', tx, ty),
     arrowFill: connColor(conn),
-    labelX: midX + 8,
-    labelY: (sy + ty) / 2,
+    labelX: (sx + tx) / 2,
+    labelY: midY - 8,
     direction: 'elbow-right-down',
   };
 }
 
 /**
  * Elbow right-then-up path.
- * Route: exit horizontally, vertical transition at midX, enter target horizontally.
- *   M sx,sy -> L midX,sy -> L midX,ty -> L tx-9,ty
+ * Route: vertical from source to midY, horizontal to target x, vertical into target bottom.
+ *   M sx,sy -> L sx,midY -> L tx,midY -> L tx,ty+9
  */
 export function elbowRightUp(sx, sy, tx, ty, conn) {
-  const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
-  const pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx - 9},${ty}`;
+  // Route: exit top of source, vertical to midY, horizontal to target x,
+  // then vertical up into target bottom — always enters from BOTTOM edge.
+  const rawMidY = (sy + ty) / 2;
+  const midY = safeMidY(rawMidY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
+  const pathD = `M ${sx},${sy} L ${sx},${midY} L ${tx},${midY} L ${tx},${ty + 9}`;
   return {
     pathD,
-    arrowPoints: arrowPolygon('right', tx, ty),
+    arrowPoints: arrowPolygon('up', tx, ty),
     arrowFill: connColor(conn),
-    labelX: midX + 8,
-    labelY: (sy + ty) / 2,
+    labelX: (sx + tx) / 2,
+    labelY: midY + 8,
     direction: 'elbow-right-up',
   };
 }
@@ -747,7 +830,8 @@ export function elbowRightUp(sx, sy, tx, ty, conn) {
  * below the lane boundary, then enter the target node from below.
  */
 export function gatewayNoRight(sx, sy, tx, ty, conn, lane) {
-  const hookY = lane.y + lane.height + (conn.offset || 18);
+  const rawHookY = lane.y + lane.height + (conn.offset || 18);
+  const hookY = safeMidY(rawHookY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
   const pathD = `M ${sx},${sy} L ${sx},${hookY} L ${tx},${hookY} L ${tx},${ty + 9}`;
   return {
     pathD,
@@ -763,7 +847,8 @@ export function gatewayNoRight(sx, sy, tx, ty, conn, lane) {
  * Loop-back U-path for same-lane right-to-left connections.
  */
 export function loopBack(sx, sy, tx, ty, conn, laneBounds) {
-  const loopY = laneBounds.bottom + (conn.offset || 24);
+  const rawLoopY = laneBounds.bottom + (conn.offset || 24);
+  const loopY = safeMidY(rawLoopY, Math.min(sx, tx), Math.max(sx, tx), _currentFromId, _currentToId);
   const pathD = `M ${sx},${sy} L ${sx},${loopY} L ${tx},${loopY} L ${tx},${ty + 9}`;
   return {
     pathD,
@@ -909,15 +994,41 @@ function applyPaddingAndLabels(result, conn, nodesMap) {
   if (nodesMap) {
     const waypoints = parsePathWaypoints(result.pathD);
     if (waypoints.length >= 2) {
-      const originalLen = waypoints.length;
+      // Save the original waypoints before padding modifies them
+      const origFirst = [...waypoints[0]];
+      const origLast  = [...waypoints[waypoints.length - 1]];
+      const origWaypoints = waypoints.map(p => [...p]);
+
       addPaddingToWaypoints(waypoints, nodesMap, conn.from, conn.to);
-      // Always rebuild — addPaddingToWaypoints may insert or adjust waypoints
-      if (waypoints.length !== originalLen) {
-        result.pathD = rebuildPathD(waypoints);
-      } else {
-        // Even same length, rebuild to apply any coordinate changes
-        result.pathD = rebuildPathD(waypoints);
+
+      // Re-snap endpoints and preserve entry direction.
+      // The padding must NOT change WHERE the arrow enters the target or
+      // FROM WHICH DIRECTION it approaches.
+      waypoints[0] = origFirst;
+      waypoints[waypoints.length - 1] = origLast;
+
+      // Force the final segment to match the original entry direction.
+      // The original path's last two points define the intended approach.
+      // After padding, the second-to-last point may have shifted, changing
+      // the approach direction. Fix: set the second-to-last point so the
+      // final segment goes in the original direction.
+      if (waypoints.length >= 2 && origWaypoints.length >= 2) {
+        const origPrev = origWaypoints[origWaypoints.length - 2];
+        const origLast2 = origWaypoints[origWaypoints.length - 1];
+        const origDx = origLast2[0] - origPrev[0];
+        const origDy = origLast2[1] - origPrev[1];
+        const last = waypoints[waypoints.length - 1];
+
+        if (Math.abs(origDy) > Math.abs(origDx)) {
+          // Original approached vertically — keep x aligned with target
+          waypoints[waypoints.length - 2] = [last[0], waypoints[waypoints.length - 2][1]];
+        } else {
+          // Original approached horizontally — keep y aligned with target
+          waypoints[waypoints.length - 2] = [waypoints[waypoints.length - 2][0], last[1]];
+        }
       }
+
+      result.pathD = rebuildPathD(waypoints);
     }
   }
 
@@ -941,18 +1052,23 @@ function gatewayPortRoute(portId, srcBounds, tgtBounds, conn, layout) {
   const portPos = getPortPosition('gateway', portId, srcBounds.width, srcBounds.height);
   const sx = srcBounds.x + portPos.x;
   const sy = srcBounds.y + portPos.y;
-  const tx = tgtBounds.x;
-  const ty = tgtBounds.top;
+  // Use target center for horizontal entry (left edge center),
+  // target top for vertical entry (top edge center).
+  const tx = tgtBounds.left;  // left edge x (for horizontal entry)
+  const txCenter = tgtBounds.x;  // center x (for vertical entry)
+  const ty = tgtBounds.y;    // center y (for horizontal entry)
+  const tyTop = tgtBounds.top;  // top edge y (for vertical entry)
 
   const seg = GATEWAY_EXIT_SEGMENT;
 
   switch (portId) {
     case 'out-left': {
       const exitX = sx - seg;
-      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${ty - 9} L ${tx},${ty - 9}`;
+      // Route: left from gateway, down to target center Y, right to target left edge
+      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${ty} L ${tx - 9},${ty}`;
       return {
         pathD,
-        arrowPoints: arrowPolygon(tx > exitX ? 'right' : 'down', tx, ty),
+        arrowPoints: arrowPolygon('right', tx, ty),
         arrowFill: connColor(conn),
         labelX: (exitX + tx) / 2,
         labelY: ty - 18,
@@ -960,18 +1076,73 @@ function gatewayPortRoute(portId, srcBounds, tgtBounds, conn, layout) {
       };
     }
 
-    case 'out-right':
-      return null;
+    case 'out-right': {
+      // Route from the diamond's right tip to the target.
+      // Determine target entry point based on relative position.
+      const rightDy = tgtBounds.y - srcBounds.y;
+      const rightCrossLane = srcBounds.laneIndex !== tgtBounds.laneIndex;
+
+      if (rightCrossLane && Math.abs(rightDy) > 20) {
+        // Cross-lane: exit right, go horizontal then vertical to target
+        const safeSy = safeMidY(sy, Math.min(sx, txCenter), Math.max(sx, txCenter), _currentFromId, _currentToId);
+        if (rightDy > 0) {
+          // Target is below — enter from top
+          const pathD = Math.abs(safeSy - sy) < 1
+            ? `M ${sx},${sy} L ${txCenter},${sy} L ${txCenter},${tyTop - 9}`
+            : `M ${sx},${sy} L ${sx},${safeSy} L ${txCenter},${safeSy} L ${txCenter},${tyTop - 9}`;
+          return {
+            pathD,
+            arrowPoints: arrowPolygon('down', txCenter, tyTop),
+            arrowFill: connColor(conn),
+            labelX: (sx + txCenter) / 2,
+            labelY: (Math.abs(safeSy - sy) < 1 ? sy : safeSy) - 8,
+            direction: 'gateway-port-right',
+          };
+        } else {
+          // Target is above — enter from bottom
+          const tyBottom = tgtBounds.bottom;
+          const pathD = Math.abs(safeSy - sy) < 1
+            ? `M ${sx},${sy} L ${txCenter},${sy} L ${txCenter},${tyBottom + 9}`
+            : `M ${sx},${sy} L ${sx},${safeSy} L ${txCenter},${safeSy} L ${txCenter},${tyBottom + 9}`;
+          return {
+            pathD,
+            arrowPoints: arrowPolygon('up', txCenter, tyBottom),
+            arrowFill: connColor(conn),
+            labelX: (sx + txCenter) / 2,
+            labelY: (Math.abs(safeSy - sy) < 1 ? sy : safeSy) + 8,
+            direction: 'gateway-port-right',
+          };
+        }
+      } else {
+        // Same lane or close vertically: horizontal route to target left edge
+        let pathD;
+        if (Math.abs(sy - ty) < 1) {
+          pathD = `M ${sx},${sy} L ${tx - 9},${sy}`;
+        } else {
+          const midX = safeMidX((sx + tx) / 2, Math.min(sy, ty), Math.max(sy, ty), _currentFromId, _currentToId);
+          pathD = `M ${sx},${sy} L ${midX},${sy} L ${midX},${ty} L ${tx - 9},${ty}`;
+        }
+        return {
+          pathD,
+          arrowPoints: arrowPolygon('right', tx, ty),
+          arrowFill: connColor(conn),
+          labelX: (sx + tx) / 2,
+          labelY: Math.min(sy, ty) - 10,
+          direction: 'gateway-port-right',
+        };
+      }
+    }
 
     case 'out-bottom': {
-      const exitY = sy + seg;
-      // Always use orthogonal routing: vertical then horizontal then vertical
-      const pathD = `M ${sx},${sy} L ${sx},${exitY} L ${tx},${exitY} L ${tx},${ty - 9}`;
+      const rawExitY = sy + seg;
+      const exitY = safeMidY(rawExitY, Math.min(sx, txCenter), Math.max(sx, txCenter), _currentFromId, _currentToId);
+      // Route: down from gateway, horizontal to target x, down to target top edge
+      const pathD = `M ${sx},${sy} L ${sx},${exitY} L ${txCenter},${exitY} L ${txCenter},${tyTop - 9}`;
       return {
         pathD,
-        arrowPoints: arrowPolygon('down', tx, ty),
+        arrowPoints: arrowPolygon('down', txCenter, tyTop),
         arrowFill: connColor(conn),
-        labelX: (sx + tx) / 2,
+        labelX: (sx + txCenter) / 2,
         labelY: exitY - 8,
         direction: 'gateway-port-bottom',
       };
@@ -980,14 +1151,14 @@ function gatewayPortRoute(portId, srcBounds, tgtBounds, conn, layout) {
     case 'out-bl': {
       const exitX = sx - seg * 0.7;
       const exitY = sy + seg * 0.7;
-      // Orthogonal: go left, then down, then horizontal, then vertical to target
-      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${exitY} L ${tx},${exitY} L ${tx},${ty - 9}`;
+      // Route to target's left edge center
+      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${ty} L ${tx - 9},${ty}`;
       return {
         pathD,
-        arrowPoints: arrowPolygon('down', tx, ty),
+        arrowPoints: arrowPolygon('right', tx, ty),
         arrowFill: connColor(conn),
         labelX: (exitX + tx) / 2,
-        labelY: exitY - 8,
+        labelY: ty - 18,
         direction: 'gateway-port-bl',
       };
     }
@@ -995,14 +1166,14 @@ function gatewayPortRoute(portId, srcBounds, tgtBounds, conn, layout) {
     case 'out-br': {
       const exitX = sx + seg * 0.7;
       const exitY = sy + seg * 0.7;
-      // Orthogonal: go right, then down, then horizontal, then vertical to target
-      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${exitY} L ${tx},${exitY} L ${tx},${ty - 9}`;
+      // Route to target's left edge center
+      const pathD = `M ${sx},${sy} L ${exitX},${sy} L ${exitX},${ty} L ${tx - 9},${ty}`;
       return {
         pathD,
-        arrowPoints: arrowPolygon('down', tx, ty),
+        arrowPoints: arrowPolygon('right', tx, ty),
         arrowFill: connColor(conn),
         labelX: (exitX + tx) / 2,
-        labelY: exitY - 8,
+        labelY: ty - 18,
         direction: 'gateway-port-br',
       };
     }
@@ -1012,29 +1183,125 @@ function gatewayPortRoute(portId, srcBounds, tgtBounds, conn, layout) {
   }
 }
 
-function resolveGatewayOutPort(conn, srcBounds, tgtBounds) {
-  if (conn.sourcePort) return conn.sourcePort;
+/** Priority-ordered list of gateway outgoing ports. */
+const GATEWAY_OUT_PORTS = ['out-right', 'out-left', 'out-bottom', 'out-br', 'out-bl'];
 
-  const sameLane = srcBounds.laneIndex === tgtBounds.laneIndex;
-
-  if (conn.decision === 'yes') return 'out-right';
-  if (conn.decision === 'no') {
-    // Same-lane targets to the right: use out-right (handled by straightHoriz
-    // which creates a Z-bend if Y differs). This avoids the bottom-exit detour
-    // that causes non-horizontal lines for vertically stacked targets.
-    if (sameLane && tgtBounds.x > srcBounds.x) return 'out-right';
-    if (tgtBounds.x > srcBounds.x) return 'out-bottom';
-    return 'out-left';
+/**
+ * Determine the preferred outgoing port for a gateway connection.
+ * If `usedPorts` is provided, the preferred port will be checked against it;
+ * when the preferred port is already taken, the next available port from the
+ * priority list is returned instead, guaranteeing each branch exits from a
+ * distinct point on the diamond.
+ *
+ * @param {object}      conn      - Connection object
+ * @param {object}      srcBounds - Source gateway bounds
+ * @param {object}      tgtBounds - Target node bounds
+ * @param {Set<string>} [usedPorts] - Ports already claimed by earlier branches
+ * @returns {string} Port name
+ */
+function resolveGatewayOutPort(conn, srcBounds, tgtBounds, usedPorts) {
+  // Check pre-assigned port from the gateway port map first
+  if (_gatewayPortMap) {
+    const key = conn.id || `${conn.from}->${conn.to}`;
+    const assigned = _gatewayPortMap.get(key);
+    if (assigned) return assigned;
   }
 
-  const dx = tgtBounds.x - srcBounds.x;
-  const dy = tgtBounds.y - srcBounds.y;
+  if (conn.sourcePort) return conn.sourcePort;
 
-  if (dx > 20) return 'out-right';
-  if (dx < -20) return 'out-left';
-  if (dy > 0) return 'out-bottom';
-  return 'out-right';
+  // Compute the heuristic-preferred port
+  let preferred;
+  if (conn.decision === 'yes') {
+    preferred = 'out-right';
+  } else if (conn.decision === 'no') {
+    preferred = tgtBounds.x < srcBounds.x ? 'out-left' : 'out-bottom';
+  } else if (conn.decision) {
+    preferred = tgtBounds.x < srcBounds.x ? 'out-left' : 'out-br';
+  } else {
+    const dx = tgtBounds.x - srcBounds.x;
+    const dy = tgtBounds.y - srcBounds.y;
+    if (dx > 20)       preferred = 'out-right';
+    else if (dx < -20) preferred = 'out-left';
+    else if (dy > 0)   preferred = 'out-bottom';
+    else               preferred = 'out-right';
+  }
+
+  // Without collision tracking, return the heuristic choice directly
+  if (!usedPorts) return preferred;
+
+  // If the preferred port is still free, use it
+  if (!usedPorts.has(preferred)) return preferred;
+
+  // Preferred port is taken — find the next available one
+  for (const port of GATEWAY_OUT_PORTS) {
+    if (!usedPorts.has(port)) return port;
+  }
+
+  // All 5 ports exhausted — fall back to preferred (overlapping is unavoidable)
+  return preferred;
 }
+
+/**
+ * Pre-assign distinct outgoing ports for every gateway node's connections.
+ * Returns a Map<connKey, portName> where connKey is the connection id or
+ * 'from->to' string.
+ *
+ * Must be called before the render loop so that computeOrthogonalPath can
+ * look up the pre-assigned port for each connection.
+ *
+ * @param {Array}  connections - Visible connection objects
+ * @param {Object} layoutNodes - layout.nodes map (nodeId -> bounds)
+ * @returns {Map<string, string>} connKey -> assigned port
+ */
+function preAssignGatewayPorts(connections, layoutNodes) {
+  // Temporarily clear the module-level map so that resolveGatewayOutPort
+  // inside this function uses the usedPorts parameter instead of stale data.
+  const prevMap = _gatewayPortMap;
+  _gatewayPortMap = null;
+
+  const assignments = new Map();
+
+  // Group connections by source gateway
+  const byGateway = new Map();
+  for (const conn of connections) {
+    const srcBounds = layoutNodes[conn.from];
+    if (!srcBounds || srcBounds.type !== 'gateway') continue;
+    if (!byGateway.has(conn.from)) byGateway.set(conn.from, []);
+    byGateway.get(conn.from).push(conn);
+  }
+
+  // For each gateway, assign ports sequentially, tracking used ports
+  for (const [gatewayId, conns] of byGateway) {
+    const usedPorts = new Set();
+    const srcBounds = layoutNodes[gatewayId];
+
+    for (const conn of conns) {
+      const tgtBounds = layoutNodes[conn.to];
+      if (!tgtBounds) continue;
+
+      // Connections with explicit sourcePort always keep their port
+      if (conn.sourcePort) {
+        usedPorts.add(conn.sourcePort);
+        const key = conn.id || `${conn.from}->${conn.to}`;
+        assignments.set(key, conn.sourcePort);
+        continue;
+      }
+
+      const port = resolveGatewayOutPort(conn, srcBounds, tgtBounds, usedPorts);
+      usedPorts.add(port);
+
+      const key = conn.id || `${conn.from}->${conn.to}`;
+      assignments.set(key, port);
+    }
+  }
+
+  // Restore previous map (will be overwritten by caller anyway)
+  _gatewayPortMap = prevMap;
+  return assignments;
+}
+
+// Module-level variable: current gateway port assignments for the active render pass
+let _gatewayPortMap = null;
 
 // ─── Master path dispatcher ───────────────────────────────────────────────────
 
@@ -1068,10 +1335,13 @@ export function computeOrthogonalPath(conn, layout, visibleNodesMap) {
 
   const direction = detectDirection(srcBounds, tgtBounds, conn.route);
 
-  // Gateway outgoing: use port-based angular separation
+  // Gateway outgoing: use port-based angular separation.
+  // Every gateway branch (including out-right) is routed through gatewayPortRoute
+  // so that each branch starts from its assigned port's distinct pixel position,
+  // preventing shared-origin violations in the QA audit.
   if (srcBounds.type === 'gateway') {
     const outPort = resolveGatewayOutPort(conn, srcBounds, tgtBounds);
-    if (outPort && outPort !== 'out-right') {
+    if (outPort) {
       const portResult = gatewayPortRoute(outPort, srcBounds, tgtBounds, conn, layout);
       if (portResult) {
         const r = applyHeaderAvoidance(portResult, layout.lanes);
@@ -1112,11 +1382,7 @@ export function computeOrthogonalPath(conn, layout, visibleNodesMap) {
       break;
 
     case 'left': {
-      const lane = layout.lanes[srcBounds.laneIndex];
-      const laneBounds = lane
-        ? { bottom: lane.y + lane.height }
-        : { bottom: sy + 40 };
-      result = loopBack(sx, sy, tx, ty, conn, laneBounds);
+      result = straightHorizLeft(sx, sy, tx, ty, conn);
       break;
     }
 
@@ -1370,18 +1636,44 @@ export function renderConnections(graph, layout, viewMode) {
   connLayer.innerHTML  = '';
   arrowLayer.innerHTML = '';
 
+  // ── Phase-based vs legacy visibility filtering ──────────────────────────────
+  const phases = normalizePhases(graph);
+  const phaseIndex = state.currentPhaseIndex ?? 0;
+  const useMultiPhase = phases.length > 2;
+
   // Build a map of only visible nodes for obstacle avoidance.
   // This prevents arrows from detouring around invisible nodes in before/after views.
   const visibleNodesMap = {};
   for (const node of (graph.nodes || [])) {
-    if (isVisible(node, viewMode, state.selectedPhase) && layout.nodes[node.id]) {
+    const nodeVisible = useMultiPhase
+      ? isVisibleAtPhase(node, phaseIndex, phases)
+      : isVisible(node, viewMode, state.selectedPhase);
+    if (nodeVisible && layout.nodes[node.id]) {
       visibleNodesMap[node.id] = layout.nodes[node.id];
     }
   }
 
-  const visible = (graph.connections || []).filter(
-    conn => isVisible(conn, viewMode, state.selectedPhase)
-  );
+  let visible;
+  if (useMultiPhase) {
+    visible = (graph.connections || []).filter(conn => {
+      if (!isVisibleAtPhase(conn, phaseIndex, phases)) return false;
+      // Both endpoints must be visible
+      const srcNode = graph.nodes.find(n => n.id === conn.from);
+      const tgtNode = graph.nodes.find(n => n.id === conn.to);
+      if (srcNode && !isVisibleAtPhase(srcNode, phaseIndex, phases)) return false;
+      if (tgtNode && !isVisibleAtPhase(tgtNode, phaseIndex, phases)) return false;
+      return true;
+    });
+  } else {
+    // Legacy before/after path (unchanged)
+    visible = (graph.connections || []).filter(
+      conn => isVisible(conn, viewMode, state.selectedPhase)
+    );
+  }
+
+  // Pre-assign distinct outgoing ports for each gateway so no two branches
+  // share the same exit point on the diamond.
+  _gatewayPortMap = preAssignGatewayPorts(visible, layout.nodes);
 
   for (const conn of visible) {
     // Choose routing mode based on state.arrowStyle
@@ -1446,6 +1738,9 @@ export function renderConnections(graph, layout, viewMode) {
       }
     }
   }
+
+  // Clear the gateway port map after rendering to avoid stale lookups
+  _gatewayPortMap = null;
 }
 
 // ─── Live re-routing during drag ─────────────────────────────────────────────
@@ -1465,8 +1760,32 @@ export function rerouteNodeConnections(nodeId, graph, layout, viewMode) {
   const arrowLayer = dom.annotationsLayer;
   if (!connLayer || !arrowLayer) return;
 
-  const visible = (graph.connections || []).filter(
-    c => (c.from === nodeId || c.to === nodeId) && isVisible(c, viewMode, state.selectedPhase)
+  // ── Phase-based vs legacy visibility filtering ──────────────────────────────
+  const phases = normalizePhases(graph);
+  const phaseIndex = state.currentPhaseIndex ?? 0;
+  const useMultiPhase = phases.length > 2;
+
+  // Pre-assign gateway ports for ALL visible connections so that port
+  // assignments remain consistent even when only a subset is re-routed.
+  let allVisible;
+  if (useMultiPhase) {
+    allVisible = (graph.connections || []).filter(c => {
+      if (!isVisibleAtPhase(c, phaseIndex, phases)) return false;
+      const srcNode = graph.nodes.find(n => n.id === c.from);
+      const tgtNode = graph.nodes.find(n => n.id === c.to);
+      if (srcNode && !isVisibleAtPhase(srcNode, phaseIndex, phases)) return false;
+      if (tgtNode && !isVisibleAtPhase(tgtNode, phaseIndex, phases)) return false;
+      return true;
+    });
+  } else {
+    allVisible = (graph.connections || []).filter(
+      c => isVisible(c, viewMode, state.selectedPhase)
+    );
+  }
+  _gatewayPortMap = preAssignGatewayPorts(allVisible, layout.nodes);
+
+  const visible = allVisible.filter(
+    c => c.from === nodeId || c.to === nodeId
   );
 
   for (const conn of visible) {
@@ -1482,4 +1801,6 @@ export function rerouteNodeConnections(nodeId, graph, layout, viewMode) {
     if (pathEl)  pathEl.setAttribute('d', result.pathD);
     if (arrowEl) arrowEl.setAttribute('points', result.arrowPoints);
   }
+
+  _gatewayPortMap = null;
 }

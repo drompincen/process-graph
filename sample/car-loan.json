@@ -1,0 +1,149 @@
+{
+  "title": "Auto Loan Application",
+  "description": "From paper-heavy branch visits to a 1-minute fully digital approval",
+  "notes": "Process Owner: Consumer Lending\nLast Reviewed: 2026-Q1\nSLA: < 1 min (Phase 3)\nRegulatory: TILA, ECOA, Fair Lending",
+
+  "phases": [
+    { "id": "phase0", "label": "0 — Branch Paper Process",    "color": "#6b7280" },
+    { "id": "phase1", "label": "1 — Doc Review Agent",        "color": "#3b82f6" },
+    { "id": "phase2", "label": "2 — Digital Intake + Scoring", "color": "#8b5cf6" },
+    { "id": "phase3", "label": "3 — Instant Online Approval",  "color": "#10b981" }
+  ],
+
+  "metrics": {
+    "phase0": { "stepCount": 10, "cycleTimeDays": 5, "manualTouchpoints": 8, "errorRate": "18%", "automationPct": 0, "costPerLoan": 420 },
+    "phase1": { "stepCount": 8,  "cycleTimeDays": 2, "manualTouchpoints": 4, "errorRate": "8%",  "automationPct": 40, "costPerLoan": 210 },
+    "phase2": { "stepCount": 6,  "cycleTimeHours": 4, "manualTouchpoints": 2, "errorRate": "3%", "automationPct": 75, "costPerLoan": 85 },
+    "phase3": { "stepCount": 4,  "cycleTimeMinutes": 1, "manualTouchpoints": 0, "errorRate": "0.5%", "automationPct": 98, "costPerLoan": 12 }
+  },
+
+  "lanes": [
+    { "id": "applicant",  "label": "Applicant",          "color": "#1e3a5f", "height": 130 },
+    { "id": "branch",     "label": "Branch / Loan Officer","color": "#1a3a2a", "height": 130 },
+    { "id": "underwrite", "label": "Underwriting",        "color": "#3a1a3a", "height": 130 },
+    { "id": "system",     "label": "System / AI",         "color": "#2a2a1a", "height": 130 }
+  ],
+
+  "nodes": [
+    { "id": "start",          "type": "start-event", "label": "Loan\nRequest",        "lane": "applicant",  "x": 100 },
+    { "id": "end-approved",   "type": "end-event",   "label": "Loan\nFunded",         "lane": "applicant",  "x": 1500, "phase": ["phase0", "phase2", "phase3"] },
+    { "id": "end-denied",     "type": "end-event",   "label": "Denied",               "lane": "applicant",  "x": 1500, "y": 80, "phase": ["phase0", "phase2", "phase3"] },
+
+    { "id": "walk-in",        "type": "task",        "label": "Walk into\nBranch",          "lane": "applicant",  "x": 240, "phase": ["phase0"] },
+    { "id": "paper-app",      "type": "task",        "label": "Fill Paper\nApplication",    "lane": "applicant",  "x": 380, "phase": ["phase0"] },
+    { "id": "collect-docs",   "type": "task",        "label": "Bring Pay Stubs\nW2 + Bank Stmt", "lane": "applicant", "x": 520, "phase": ["phase0"] },
+    { "id": "lo-review",      "type": "task",        "label": "Loan Officer\nReviews Docs",  "lane": "branch",     "x": 660, "phase": ["phase0"] },
+    { "id": "manual-enter",   "type": "task",        "label": "Key Data\ninto System",       "lane": "branch",     "x": 800, "phase": ["phase0"] },
+    { "id": "order-credit",   "type": "task",        "label": "Order Credit\nReport (Phone)", "lane": "branch",    "x": 940, "phase": ["phase0"] },
+    { "id": "uw-manual",      "type": "task",        "label": "Manual\nUnderwriting",        "lane": "underwrite", "x": 1080, "phase": ["phase0"] },
+    { "id": "uw-checklist",   "type": "task",        "label": "Compliance\nChecklist",        "lane": "underwrite", "x": 1220, "phase": ["phase0"] },
+    { "id": "decision-call",  "type": "gateway",     "label": "Approved?",                    "lane": "branch",     "x": 1360, "phase": ["phase0"] },
+
+    { "id": "scan-upload",    "type": "task",        "label": "Scan & Upload\nDocs at Branch", "lane": "branch",    "x": 240, "phase": ["phase1"] },
+    { "id": "doc-agent",      "type": "agent",       "label": "Doc Review\nAgent",             "lane": "system",    "x": 380, "phase": "phase1" },
+    { "id": "extract-data",   "type": "subprocess",  "label": "Extract Income\n& Employment",  "lane": "system",    "x": 520, "phase": ["phase1"] },
+    { "id": "credit-api",     "type": "system",      "label": "Credit Bureau\nAPI",             "lane": "system",    "x": 660, "phase": "phase1" },
+    { "id": "lo-validate",    "type": "task",        "label": "Loan Officer\nValidates AI Output","lane": "branch",  "x": 520, "phase": ["phase1"] },
+    { "id": "uw-assisted",    "type": "task",        "label": "Assisted\nUnderwriting",        "lane": "underwrite","x": 800, "phase": ["phase1"] },
+    { "id": "email-decision", "type": "end-event",   "label": "Email\nDecision",               "lane": "applicant", "x": 940, "phase": ["phase1"] },
+
+    { "id": "online-form",    "type": "task",        "label": "Online Form\n(Pre-filled)",     "lane": "applicant", "x": 240, "phase": ["phase2"] },
+    { "id": "doc-upload",     "type": "task",        "label": "Upload Docs\n(Photo/PDF)",      "lane": "applicant", "x": 380, "phase": ["phase2"] },
+    { "id": "scoring-engine", "type": "subprocess",  "label": "Auto-Scoring\nEngine",          "lane": "system",    "x": 660, "phase": ["phase2"] },
+    { "id": "risk-gateway",   "type": "gateway",     "label": "Risk\nLevel?",                  "lane": "system",    "x": 800, "phase": ["phase2"] },
+    { "id": "auto-approve",   "type": "task",        "label": "Auto-Approve\n(Low Risk)",      "lane": "system",    "x": 940, "phase": ["phase2"] },
+    { "id": "uw-exception",   "type": "task",        "label": "Underwriter\nException Review", "lane": "underwrite","x": 1100, "phase": ["phase2"] },
+
+    { "id": "instant-form",   "type": "task",        "label": "1-Minute\nOnline Form",         "lane": "applicant", "x": 240, "phase": "phase3", "state": "automated" },
+    { "id": "consent-api",    "type": "system",      "label": "Consent &\nData Pull API",      "lane": "system",    "x": 520, "phase": "phase3", "state": "automated" },
+    { "id": "ai-underwriter", "type": "agent",       "label": "AI\nUnderwriter",               "lane": "system",    "x": 660, "phase": "phase3", "state": "automated" },
+    { "id": "instant-gateway","type": "gateway",     "label": "Confidence?",                    "lane": "system",    "x": 800, "phase": "phase3" },
+    { "id": "instant-approve","type": "task",        "label": "Instant\nApproval",              "lane": "system",    "x": 940, "phase": "phase3", "state": "automated" },
+    { "id": "human-escalate", "type": "task",        "label": "Human\nEscalation",              "lane": "underwrite","x": 1200, "phase": "phase3" }
+  ],
+
+  "connections": [
+    { "id": "c-start-walkin",       "from": "start",         "to": "walk-in",        "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-walkin-paper",       "from": "walk-in",       "to": "paper-app",      "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-paper-collect",      "from": "paper-app",     "to": "collect-docs",   "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-collect-lo",         "from": "collect-docs",  "to": "lo-review",      "type": "message",  "phase": ["phase0"] },
+    { "id": "c-lo-enter",           "from": "lo-review",     "to": "manual-enter",   "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-enter-credit",       "from": "manual-enter",  "to": "order-credit",   "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-credit-uw",          "from": "order-credit",  "to": "uw-manual",      "type": "message",  "phase": ["phase0"] },
+    { "id": "c-uw-checklist",       "from": "uw-manual",     "to": "uw-checklist",   "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-checklist-decision", "from": "uw-checklist",  "to": "decision-call",  "type": "sequence", "phase": ["phase0"] },
+    { "id": "c-decision-approved",  "from": "decision-call", "to": "end-approved",   "type": "sequence", "phase": ["phase0"], "decision": "yes", "label": "Approved" },
+    { "id": "c-decision-denied",    "from": "decision-call", "to": "end-denied",     "type": "sequence", "phase": ["phase0"], "decision": "no",  "label": "Denied" },
+
+    { "id": "c-start-scan",        "from": "start",          "to": "scan-upload",    "type": "sequence", "phase": ["phase1"] },
+    { "id": "c-scan-agent",        "from": "scan-upload",    "to": "doc-agent",      "type": "message",  "phase": ["phase1"] },
+    { "id": "c-agent-extract",     "from": "doc-agent",      "to": "extract-data",   "type": "sequence", "phase": ["phase1"] },
+    { "id": "c-extract-credit",    "from": "extract-data",   "to": "credit-api",     "type": "sequence", "phase": ["phase1"] },
+    { "id": "c-agent-validate",    "from": "doc-agent",      "to": "lo-validate",    "type": "message",  "phase": ["phase1"] },
+    { "id": "c-validate-uw",       "from": "lo-validate",    "to": "uw-assisted",    "type": "sequence", "phase": ["phase1"] },
+    { "id": "c-credit-uw1",        "from": "credit-api",     "to": "uw-assisted",    "type": "message",  "phase": ["phase1"] },
+    { "id": "c-uw-email",          "from": "uw-assisted",    "to": "email-decision", "type": "sequence", "phase": ["phase1"] },
+
+    { "id": "c-start-online",      "from": "start",          "to": "online-form",    "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-online-upload",     "from": "online-form",    "to": "doc-upload",     "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-upload-agent2",     "from": "doc-upload",     "to": "doc-agent",      "type": "message",  "phase": ["phase2"] },
+    { "id": "c-agent-credit2",     "from": "doc-agent",      "to": "credit-api",     "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-credit-scoring",    "from": "credit-api",     "to": "scoring-engine", "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-scoring-risk",      "from": "scoring-engine", "to": "risk-gateway",   "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-risk-auto",         "from": "risk-gateway",   "to": "auto-approve",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Low Risk" },
+    { "id": "c-risk-exception",    "from": "risk-gateway",   "to": "uw-exception",   "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "High Risk", "route": "down" },
+    { "id": "c-auto-approved2",    "from": "auto-approve",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-exception-approved","from": "uw-exception",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Approved" },
+    { "id": "c-exception-denied",  "from": "uw-exception",   "to": "end-denied",     "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "Denied" },
+
+    { "id": "c-start-instant",     "from": "start",           "to": "instant-form",   "type": "sequence", "phase": "phase3" },
+    { "id": "c-instant-consent",   "from": "instant-form",    "to": "consent-api",    "type": "sequence", "phase": "phase3" },
+    { "id": "c-consent-agent3",    "from": "consent-api",     "to": "doc-agent",      "type": "sequence", "phase": "phase3" },
+    { "id": "c-consent-credit",    "from": "consent-api",     "to": "credit-api",     "type": "sequence", "phase": "phase3" },
+    { "id": "c-agent-aiuw",        "from": "doc-agent",       "to": "ai-underwriter", "type": "sequence", "phase": "phase3" },
+    { "id": "c-credit-aiuw",       "from": "credit-api",      "to": "ai-underwriter", "type": "message",  "phase": "phase3" },
+    { "id": "c-aiuw-gateway",      "from": "ai-underwriter",  "to": "instant-gateway","type": "sequence", "phase": "phase3" },
+    { "id": "c-gw-instant",        "from": "instant-gateway",  "to": "instant-approve","type": "sequence", "phase": "phase3", "decision": "yes", "label": ">95%" },
+    { "id": "c-gw-escalate",       "from": "instant-gateway",  "to": "human-escalate", "type": "sequence", "phase": "phase3", "decision": "no",  "label": "<95%", "route": "down" },
+    { "id": "c-instant-funded",    "from": "instant-approve",  "to": "end-approved",   "type": "sequence", "phase": "phase3" },
+    { "id": "c-escalate-approved", "from": "human-escalate",   "to": "end-approved",   "type": "sequence", "phase": "phase3", "decision": "yes", "label": "Approved" },
+    { "id": "c-escalate-denied",   "from": "human-escalate",   "to": "end-denied",     "type": "sequence", "phase": "phase3", "decision": "no",  "label": "Denied" }
+  ],
+
+  "sequence": [
+    { "from": "start",         "to": "walk-in",       "text": "Customer walks into branch",              "status": "ready" },
+    { "from": "walk-in",       "to": "paper-app",     "text": "Takes a number, waits 20-45 min",         "status": "ready" },
+    { "from": "paper-app",     "to": "collect-docs",  "text": "Fills 4-page paper application by hand",  "status": "ready" },
+    { "from": "collect-docs",  "to": "lo-review",     "text": "Hands pay stubs, W-2, bank statements",   "status": "wip" },
+    { "from": "lo-review",     "to": "manual-enter",  "text": "Loan officer reviews each page manually", "status": "wip" },
+    { "from": "manual-enter",  "to": "order-credit",  "text": "Keys data into legacy system",            "status": "wip" },
+    { "from": "order-credit",  "to": "uw-manual",     "text": "Phones credit bureau for report",         "status": "wip" },
+    { "from": "uw-manual",     "to": "uw-checklist",  "text": "Underwriter reviews full package",        "status": "wip" },
+    { "from": "uw-checklist",  "to": "decision-call", "text": "Compliance checklist completed",          "status": "ready" },
+    { "from": "decision-call", "to": "end-approved",  "text": "Loan officer calls customer with decision","status": "ready" }
+  ],
+
+  "spec": {
+    "schemaVersion": "2.0",
+    "nodeInventory": [
+      { "id": "start",          "type": "start-event",     "lane": "applicant",  "role": "Customer initiates loan request" },
+      { "id": "end-approved",   "type": "end-event",       "lane": "applicant",  "role": "Loan funded and disbursed" },
+      { "id": "end-denied",     "type": "end-event",       "lane": "applicant",  "role": "Application denied with reason code" },
+      { "id": "walk-in",        "type": "task",            "lane": "applicant",  "phase": "phase0", "role": "Customer walks into branch, takes a number, waits 20-45 min" },
+      { "id": "paper-app",      "type": "task",            "lane": "applicant",  "phase": "phase0", "role": "4-page paper application filled by hand, frequent errors" },
+      { "id": "collect-docs",   "type": "task",            "lane": "applicant",  "phase": "phase0", "role": "Customer must bring original pay stubs (2 months), W-2, bank statements (3 months), ID" },
+      { "id": "lo-review",      "type": "task",            "lane": "branch",     "phase": "phase0", "role": "Loan officer manually reviews each document page by page" },
+      { "id": "doc-agent",      "type": "agent",           "lane": "system",     "phase": "phase1", "role": "AI agent extracts income, employer, DTI from uploaded docs in <30 seconds" },
+      { "id": "credit-api",     "type": "system",          "lane": "system",     "phase": "phase1", "role": "Real-time credit bureau pull (Experian/Equifax/TransUnion)" },
+      { "id": "ai-underwriter", "type": "agent",           "lane": "system",     "phase": "phase3", "role": "Full AI underwriting: income verification, DTI calc, risk model, compliance check — all in <10 seconds" },
+      { "id": "instant-form",   "type": "task",            "lane": "applicant",  "phase": "phase3", "role": "Pre-filled form with employer/income from payroll API, SSN consent for credit pull — 60 seconds total" }
+    ],
+    "invariants": [
+      "Every phase has exactly one path from start to at least one end event",
+      "No orphan nodes at any phase",
+      "Phase 0 has zero automation — everything is manual",
+      "Phase 3 has zero manual touchpoints for the happy path (>95% confidence)",
+      "Compliance checks exist at every phase (manual checklist → assisted → auto → AI)"
+    ]
+  }
+}

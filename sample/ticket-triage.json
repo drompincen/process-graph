@@ -1,131 +1,257 @@
 {
   "title": "IT Ticket Triage Process",
-  "description": "Improvement from manual email-based triage to automated routing",
-  "notes": "Process Owner: IT Operations\nLast Reviewed: 2024-Q1\nSLA Target: < 30 minutes (after)",
+  "description": "4-phase transformation from manual email triage to AI agent routing with predictive resolution",
+  "notes": "Process Owner: IT Operations\nLast Reviewed: 2026-Q1\nSLA Target: < 5 minutes (Phase 3)\nEscalation: it-ops@company.com",
 
   "metrics": {
-    "before": { "stepCount": 5, "cycleTimeHours": 4, "handoffCount": 3, "errorRate": "~20%", "automationPct": 0 },
-    "after":  { "stepCount": 3, "cycleTimeHours": 0.5, "handoffCount": 1, "errorRate": "~3%", "automationPct": 75 }
+    "phase0": {
+      "stepCount": 7,
+      "cycleTimeHours": 4,
+      "handoffCount": 4,
+      "errorRate": "~25%",
+      "automationPct": 0,
+      "slaCompliancePct": 40,
+      "avgResponseMin": 240
+    },
+    "phase1": {
+      "stepCount": 6,
+      "cycleTimeHours": 1.5,
+      "handoffCount": 3,
+      "errorRate": "~15%",
+      "automationPct": 20,
+      "slaCompliancePct": 65,
+      "avgResponseMin": 90
+    },
+    "phase2": {
+      "stepCount": 5,
+      "cycleTimeHours": 0.5,
+      "handoffCount": 2,
+      "errorRate": "~5%",
+      "automationPct": 60,
+      "slaCompliancePct": 88,
+      "avgResponseMin": 30
+    },
+    "phase3": {
+      "stepCount": 4,
+      "cycleTimeHours": 0.08,
+      "handoffCount": 1,
+      "errorRate": "~2%",
+      "automationPct": 90,
+      "slaCompliancePct": 98,
+      "avgResponseMin": 5
+    }
   },
 
-  "lanes": [
-    { "id": "user",    "label": "User",       "color": "#1e3a5f", "height": 120 },
-    { "id": "triage",  "label": "Triage",     "color": "#1a3a2a", "height": 120 },
-    { "id": "system",  "label": "System",     "color": "#2a2a1a", "height": 120 }
+  "phases": [
+    { "id": "phase0", "label": "0 -- Email Inbox",          "color": "#6b7280" },
+    { "id": "phase1", "label": "1 -- Web Portal",           "color": "#3b82f6" },
+    { "id": "phase2", "label": "2 -- Auto-Classification",  "color": "#8b5cf6" },
+    { "id": "phase3", "label": "3 -- AI Agent Routing",     "color": "#10b981" }
   ],
 
-  "phases": [
-    { "id": "phase1", "label": "Auto Classify" },
-    { "id": "phase2", "label": "Smart Route" }
+  "lanes": [
+    { "id": "support",     "label": "Support / Helpdesk", "color": "#1e3a5f", "height": 130 },
+    { "id": "engineering", "label": "Engineering",         "color": "#1a3a2a", "height": 130 },
+    { "id": "management",  "label": "Management",          "color": "#3a1a3a", "height": 130 },
+    { "id": "system",      "label": "System",              "color": "#2a2a1a", "height": 130 }
   ],
 
   "nodes": [
-    { "id": "b-start",    "type": "start-event", "label": "Start",            "lane": "user",   "x": 100, "phase": "before" },
-    { "id": "b-email",    "type": "task",         "label": "Send\nEmail",      "lane": "user",   "x": 210, "phase": "before", "diff": "removed" },
-    { "id": "b-inbox",    "type": "task",         "label": "Check\nInbox",     "lane": "triage", "x": 360, "phase": "before", "diff": "removed" },
-    { "id": "b-classify", "type": "task",         "label": "Manual\nClassify", "lane": "triage", "x": 510, "phase": "before", "diff": "removed" },
-    { "id": "b-gateway",  "type": "gateway",      "label": "Priority?",        "lane": "triage", "x": 660, "phase": "before" },
-    { "id": "b-high",     "type": "end-event",    "label": "High\nPriority",   "lane": "triage", "x": 790, "phase": "before" },
-    { "id": "b-low",      "type": "end-event",    "label": "Low\nPriority",    "lane": "user",   "x": 790, "phase": "before" },
+    { "id": "start",              "type": "start-event",        "label": "Ticket\nReceived",       "lane": "support",     "x": 100 },
 
-    { "id": "a-start",    "type": "start-event",  "label": "Start",            "lane": "user",   "x": 100, "phase": "after" },
-    { "id": "a-portal",   "type": "task",          "label": "Submit\nPortal",   "lane": "user",   "x": 210, "phase": "after", "diff": "added", "state": "automated" },
-    { "id": "a-classify", "type": "subprocess",    "label": "Auto\nClassify",   "lane": "system", "x": 380, "phase": "after", "diff": "added", "state": "automated" },
-    { "id": "a-gateway",  "type": "gateway",       "label": "Priority?",        "lane": "triage", "x": 550, "phase": "after" },
-    { "id": "a-high",     "type": "end-event",     "label": "High\nPriority",   "lane": "triage", "x": 700, "phase": "after" },
-    { "id": "a-low",      "type": "end-event",     "label": "Low\nPriority",    "lane": "user",   "x": 700, "phase": "after" }
+    { "id": "send-email",         "type": "task",               "label": "Send\nEmail",            "lane": "support",     "x": 260,  "phase": ["phase0"] },
+    { "id": "check-inbox",        "type": "task",               "label": "Check\nInbox",           "lane": "support",     "x": 420,  "phase": ["phase0"] },
+    { "id": "manual-classify",    "type": "task",               "label": "Manual\nClassify",       "lane": "support",     "x": 580,  "phase": ["phase0", "phase1"] },
+    { "id": "random-assign",      "type": "task",               "label": "Random\nAssignment",     "lane": "support",     "x": 740,  "phase": ["phase0"] },
+
+    { "id": "submit-portal",      "type": "task",               "label": "Submit via\nPortal",     "lane": "support",     "x": 260,  "phase": ["phase1", "phase2"],  "state": "automated" },
+    { "id": "categorize-form",    "type": "task",               "label": "Select\nCategory",       "lane": "support",     "x": 420,  "phase": ["phase1"] },
+    { "id": "email-notify",       "type": "intermediate-event", "label": "Email\nNotification",    "lane": "system",      "x": 900,  "phase": ["phase1", "phase2"] },
+    { "id": "basic-priority",     "type": "task",               "label": "Set\nPriority",          "lane": "support",     "x": 580,  "phase": ["phase1"] },
+
+    { "id": "ai-classifier",      "type": "subprocess",         "label": "AI\nClassifier",         "lane": "system",      "x": 420,  "phase": ["phase2"],  "state": "automated" },
+    { "id": "sla-timer",          "type": "intermediate-event", "label": "SLA\nTimer Start",       "lane": "system",      "x": 580,  "phase": ["phase2"],  "state": "automated" },
+    { "id": "routing-rules",      "type": "subprocess",         "label": "Routing\nRules Engine",  "lane": "system",      "x": 740,  "phase": ["phase2"] },
+
+    { "id": "ai-triage-agent",    "type": "agent",              "label": "AI Triage\nAgent",       "lane": "system",      "x": 260,  "phase": "phase3",  "state": "automated" },
+    { "id": "intent-analysis",    "type": "subprocess",         "label": "Intent\nAnalysis",       "lane": "system",      "x": 420,  "phase": "phase3",  "state": "automated" },
+    { "id": "predictive-route",   "type": "subprocess",         "label": "Predictive\nRouting",    "lane": "system",      "x": 580,  "phase": "phase3",  "state": "automated" },
+    { "id": "auto-resolve",       "type": "subprocess",         "label": "Auto-Resolve\nKnown Issue", "lane": "system",   "x": 740,  "phase": "phase3",  "state": "automated" },
+
+    { "id": "priority-gateway",   "type": "gateway",            "label": "Severity?",              "lane": "support",     "x": 740,  "phase": ["phase1", "phase2"] },
+    { "id": "resolve-gateway",    "type": "gateway",            "label": "Known\nIssue?",          "lane": "system",      "x": 900,  "phase": "phase3" },
+
+    { "id": "assign-engineer",    "type": "task",               "label": "Assign\nEngineer",       "lane": "engineering", "x": 900,  "phase": ["phase0", "phase1", "phase2"] },
+    { "id": "smart-assign",       "type": "subprocess",         "label": "Smart\nAssignment",      "lane": "system",      "x": 1060, "phase": "phase3",  "state": "automated" },
+
+    { "id": "escalate",           "type": "task",               "label": "Escalate to\nManagement","lane": "management",  "x": 900,  "phase": ["phase1"] },
+
+    { "id": "end-queued",         "type": "end-event",          "label": "Ticket\nQueued",         "lane": "engineering", "x": 1060, "phase": ["phase0", "phase1", "phase2"] },
+    { "id": "end-resolved",       "type": "end-event",          "label": "Auto-\nResolved",        "lane": "system",      "x": 1060, "phase": "phase3" },
+    { "id": "end-routed",         "type": "end-event",          "label": "Ticket\nRouted",         "lane": "engineering", "x": 1200, "phase": "phase3" }
   ],
 
   "connections": [
-    { "id": "b-c1", "from": "b-start",    "to": "b-email",    "type": "sequence", "phase": "before" },
-    { "id": "b-c2", "from": "b-email",    "to": "b-inbox",    "type": "message",  "phase": "before" },
-    { "id": "b-c3", "from": "b-inbox",    "to": "b-classify", "type": "sequence", "phase": "before" },
-    { "id": "b-c4", "from": "b-classify", "to": "b-gateway",  "type": "sequence", "phase": "before" },
-    { "id": "b-c5", "from": "b-gateway",  "to": "b-high",     "type": "sequence", "phase": "before", "decision": "yes", "label": "High" },
-    { "id": "b-c6", "from": "b-gateway",  "to": "b-low",      "type": "sequence", "phase": "before", "decision": "no",  "label": "Low" },
+    { "id": "c-start-email",         "from": "start",            "to": "send-email",        "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-email-inbox",         "from": "send-email",       "to": "check-inbox",       "type": "message",     "phase": ["phase0"] },
+    { "id": "c-inbox-classify",      "from": "check-inbox",      "to": "manual-classify",   "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-classify-random",     "from": "manual-classify",  "to": "random-assign",     "type": "sequence",    "phase": ["phase0"] },
+    { "id": "c-random-assign",       "from": "random-assign",    "to": "assign-engineer",   "type": "message",     "phase": ["phase0"] },
+    { "id": "c-assign-queued-p0",    "from": "assign-engineer",  "to": "end-queued",        "type": "sequence",    "phase": ["phase0"] },
 
-    { "id": "a-c1", "from": "a-start",    "to": "a-portal",   "type": "sequence", "phase": "after" },
-    { "id": "a-c2", "from": "a-portal",   "to": "a-classify", "type": "message",  "phase": "after" },
-    { "id": "a-c3", "from": "a-classify", "to": "a-gateway",  "type": "message",  "phase": "after" },
-    { "id": "a-c4", "from": "a-gateway",  "to": "a-high",     "type": "sequence", "phase": "after", "decision": "yes", "label": "High" },
-    { "id": "a-c5", "from": "a-gateway",  "to": "a-low",      "type": "sequence", "phase": "after", "decision": "no",  "label": "Low" }
+    { "id": "c-start-portal",        "from": "start",            "to": "submit-portal",     "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-portal-category",     "from": "submit-portal",    "to": "categorize-form",   "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-category-priority",   "from": "categorize-form",  "to": "basic-priority",    "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-priority-classify",   "from": "basic-priority",   "to": "manual-classify",   "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-classify-gateway-p1", "from": "manual-classify",  "to": "priority-gateway",  "type": "sequence",    "phase": ["phase1"] },
+    { "id": "c-gw-high-escalate",    "from": "priority-gateway", "to": "escalate",          "type": "sequence",    "phase": ["phase1"],    "decision": "yes", "label": "Critical" },
+    { "id": "c-escalate-assign",     "from": "escalate",         "to": "assign-engineer",   "type": "message",     "phase": ["phase1"] },
+    { "id": "c-gw-low-assign-p1",    "from": "priority-gateway", "to": "assign-engineer",   "type": "sequence",    "phase": ["phase1"],    "decision": "no",  "label": "Normal" },
+    { "id": "c-assign-notify-p1",    "from": "assign-engineer",  "to": "email-notify",      "type": "message",     "phase": ["phase1"] },
+    { "id": "c-notify-queued-p1",    "from": "email-notify",     "to": "end-queued",        "type": "sequence",    "phase": ["phase1"] },
+
+    { "id": "c-start-portal-p2",     "from": "start",            "to": "submit-portal",     "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-portal-classifier",   "from": "submit-portal",    "to": "ai-classifier",     "type": "message",     "phase": ["phase2"] },
+    { "id": "c-classifier-sla",      "from": "ai-classifier",    "to": "sla-timer",         "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-sla-routing",         "from": "sla-timer",        "to": "routing-rules",     "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-routing-gateway",     "from": "routing-rules",    "to": "priority-gateway",  "type": "sequence",    "phase": ["phase2"] },
+    { "id": "c-gw-high-assign-p2",   "from": "priority-gateway", "to": "assign-engineer",   "type": "sequence",    "phase": ["phase2"],    "decision": "yes", "label": "High" },
+    { "id": "c-gw-low-assign-p2",    "from": "priority-gateway", "to": "assign-engineer",   "type": "sequence",    "phase": ["phase2"],    "decision": "no",  "label": "Low" },
+    { "id": "c-assign-notify-p2",    "from": "assign-engineer",  "to": "email-notify",      "type": "message",     "phase": ["phase2"] },
+    { "id": "c-notify-queued-p2",    "from": "email-notify",     "to": "end-queued",        "type": "sequence",    "phase": ["phase2"] },
+
+    { "id": "c-start-agent",         "from": "start",            "to": "ai-triage-agent",   "type": "sequence",    "phase": "phase3" },
+    { "id": "c-agent-intent",        "from": "ai-triage-agent",  "to": "intent-analysis",   "type": "sequence",    "phase": "phase3" },
+    { "id": "c-intent-predict",      "from": "intent-analysis",  "to": "predictive-route",  "type": "sequence",    "phase": "phase3" },
+    { "id": "c-predict-resolve-gw",  "from": "predictive-route", "to": "resolve-gateway",   "type": "sequence",    "phase": "phase3" },
+    { "id": "c-gw-known-resolve",    "from": "resolve-gateway",  "to": "auto-resolve",      "type": "sequence",    "phase": "phase3",      "decision": "yes", "label": "Known" },
+    { "id": "c-resolve-end",         "from": "auto-resolve",     "to": "end-resolved",      "type": "sequence",    "phase": "phase3" },
+    { "id": "c-gw-unknown-assign",   "from": "resolve-gateway",  "to": "smart-assign",      "type": "sequence",    "phase": "phase3",      "decision": "no",  "label": "Novel" },
+    { "id": "c-smart-routed",        "from": "smart-assign",     "to": "end-routed",        "type": "sequence",    "phase": "phase3" }
   ],
 
   "sequence": [
-    { "from": "a-start",    "to": "a-portal",   "text": "User opens support portal",    "status": "ready" },
-    { "from": "a-portal",   "to": "a-classify", "text": "Ticket submitted — classifying", "status": "ready" },
-    { "from": "a-classify", "to": "a-gateway",  "text": "Classification complete",       "status": "ready" },
-    { "from": "a-gateway",  "to": "a-high",     "text": "Routed to high-priority queue", "status": "ready" }
+    { "from": "start",            "to": "ai-triage-agent",  "text": "Ticket received by AI agent",            "status": "ready" },
+    { "from": "ai-triage-agent",  "to": "intent-analysis",  "text": "Analyzing user intent and context",      "status": "ready" },
+    { "from": "intent-analysis",  "to": "predictive-route",  "text": "Intent classified — predicting route",  "status": "ready" },
+    { "from": "predictive-route", "to": "resolve-gateway",   "text": "Route prediction complete",             "status": "ready" },
+    { "from": "resolve-gateway",  "to": "auto-resolve",      "text": "Known issue — auto-resolving",          "status": "ready",
+      "popup": { "type": "amplify", "msg": "Resolution confidence: 96%" } },
+    { "from": "resolve-gateway",  "to": "smart-assign",      "text": "Novel issue — smart assignment",        "status": "ready" }
   ],
 
   "spec": {
-    "schemaVersion": "1.0",
-    "description": "Before/after comparison of an IT ticket triage process: manual email-based triage (before) vs. automated portal submission with AI classification and smart routing (after).",
+    "schemaVersion": "2.0",
+    "description": "4-phase IT ticket triage transformation: Phase 0 (manual email inbox with random assignment), Phase 1 (web portal with categories and basic priority), Phase 2 (AI classifier with SLA timers and routing rules), Phase 3 (AI triage agent with intent analysis, predictive routing, and auto-resolution for known issues).",
     "nodeInventory": [
-      { "id": "b-start",    "type": "start-event", "lane": "user",   "phase": "before", "role": "Triggers the before-state triage process when a user has an IT issue",                  "critical": true  },
-      { "id": "b-email",    "type": "task",         "lane": "user",   "phase": "before", "role": "User composes and sends an unstructured email to the IT inbox",                         "critical": true  },
-      { "id": "b-inbox",    "type": "task",         "lane": "triage", "phase": "before", "role": "Triage agent manually checks shared inbox for new tickets — repeated polling",          "critical": true  },
-      { "id": "b-classify", "type": "task",         "lane": "triage", "phase": "before", "role": "Agent manually reads email and assigns priority category",                              "critical": true  },
-      { "id": "b-gateway",  "type": "gateway",      "lane": "triage", "phase": "before", "role": "Priority decision split: High → immediate queue, Low → backlog queue",                 "critical": true  },
-      { "id": "b-high",     "type": "end-event",    "lane": "triage", "phase": "before", "role": "Ticket placed in high-priority queue for immediate handling",                          "critical": false },
-      { "id": "b-low",      "type": "end-event",    "lane": "user",   "phase": "before", "role": "Ticket placed in low-priority backlog",                                                "critical": false },
-      { "id": "a-start",    "type": "start-event",  "lane": "user",   "phase": "after",  "role": "Triggers the after-state automated triage process",                                    "critical": true  },
-      { "id": "a-portal",   "type": "task",          "lane": "user",   "phase": "after",  "role": "User submits structured ticket via self-service portal with category and description",  "critical": true  },
-      { "id": "a-classify", "type": "subprocess",    "lane": "system", "phase": "after",  "role": "System automatically classifies ticket priority using keyword rules and ML model",      "critical": true  },
-      { "id": "a-gateway",  "type": "gateway",       "lane": "triage", "phase": "after",  "role": "Priority routing split after automated classification",                                "critical": true  },
-      { "id": "a-high",     "type": "end-event",     "lane": "triage", "phase": "after",  "role": "Ticket routed to high-priority queue with SLA timer started",                         "critical": false },
-      { "id": "a-low",      "type": "end-event",     "lane": "user",   "phase": "after",  "role": "Ticket routed to low-priority queue with confirmation sent to user",                   "critical": false }
+      { "id": "start",            "type": "start-event",        "lane": "support",     "phase": null,        "role": "Universal entry point: ticket received through any channel across all phases",                                   "critical": true  },
+      { "id": "send-email",       "type": "task",               "lane": "support",     "phase": ["phase0"],  "role": "User composes unstructured email to IT shared inbox — no template, no category",                                  "critical": true  },
+      { "id": "check-inbox",      "type": "task",               "lane": "support",     "phase": ["phase0"],  "role": "Helpdesk agent manually polls shared inbox — tickets sit unread for hours",                                      "critical": true  },
+      { "id": "manual-classify",  "type": "task",               "lane": "support",     "phase": ["phase0", "phase1"], "role": "Agent reads ticket and assigns category/priority based on judgment — inconsistent and slow",               "critical": true  },
+      { "id": "random-assign",    "type": "task",               "lane": "support",     "phase": ["phase0"],  "role": "Ticket assigned to next available engineer regardless of skill match — poor routing",                            "critical": true  },
+      { "id": "submit-portal",    "type": "task",               "lane": "support",     "phase": "phase1",    "role": "User submits structured ticket via web portal with required fields — replaces email from Phase 1 onward",        "critical": true  },
+      { "id": "categorize-form",  "type": "task",               "lane": "support",     "phase": ["phase1"],  "role": "User selects category from dropdown during portal submission — basic structured input",                          "critical": false },
+      { "id": "basic-priority",   "type": "task",               "lane": "support",     "phase": ["phase1"],  "role": "Agent sets priority level (low/medium/high) based on category and description",                                 "critical": false },
+      { "id": "email-notify",     "type": "intermediate-event", "lane": "system",      "phase": ["phase1", "phase2"], "role": "System sends email confirmation to user with ticket number and expected SLA",                             "critical": false },
+      { "id": "ai-classifier",    "type": "subprocess",         "lane": "system",      "phase": "phase2",    "role": "ML model classifies ticket severity and category from text — replaces manual classification from Phase 2 onward", "critical": true  },
+      { "id": "sla-timer",        "type": "intermediate-event", "lane": "system",      "phase": "phase2",    "role": "SLA countdown timer starts based on classified severity — enables compliance tracking from Phase 2 onward",       "critical": true  },
+      { "id": "routing-rules",    "type": "subprocess",         "lane": "system",      "phase": ["phase2"],  "role": "Rule engine routes ticket to appropriate team based on category, severity, and team capacity",                   "critical": true  },
+      { "id": "ai-triage-agent",  "type": "agent",              "lane": "system",      "phase": "phase3",    "role": "AI agent receives ticket, analyzes context, history, and user profile — replaces all manual triage in Phase 3",   "critical": true  },
+      { "id": "intent-analysis",  "type": "subprocess",         "lane": "system",      "phase": "phase3",    "role": "NLP pipeline extracts user intent, affected system, urgency signals, and sentiment",                            "critical": true  },
+      { "id": "predictive-route", "type": "subprocess",         "lane": "system",      "phase": "phase3",    "role": "Prediction model determines optimal resolution path based on historical patterns and current team load",         "critical": true  },
+      { "id": "auto-resolve",     "type": "subprocess",         "lane": "system",      "phase": "phase3",    "role": "Automated resolution for known issues: password resets, access requests, FAQ answers",                           "critical": true  },
+      { "id": "priority-gateway", "type": "gateway",            "lane": "support",     "phase": ["phase1", "phase2"], "role": "Routes ticket based on severity: critical tickets escalate or get priority assignment",                  "critical": true  },
+      { "id": "resolve-gateway",  "type": "gateway",            "lane": "system",      "phase": "phase3",    "role": "Decision point: known issue routes to auto-resolve, novel issue routes to smart assignment",                    "critical": true  },
+      { "id": "assign-engineer",  "type": "task",               "lane": "engineering", "phase": ["phase0", "phase1", "phase2"], "role": "Engineer assigned to ticket — manual in P0/P1, rule-based in P2",                               "critical": true  },
+      { "id": "smart-assign",     "type": "subprocess",         "lane": "system",      "phase": "phase3",    "role": "AI assigns novel tickets to best-matched engineer based on skills, load, and past resolution success",           "critical": true  },
+      { "id": "escalate",         "type": "task",               "lane": "management",  "phase": ["phase1"],  "role": "Critical tickets escalated to management for visibility and resource allocation",                               "critical": false },
+      { "id": "end-queued",       "type": "end-event",          "lane": "engineering", "phase": ["phase0", "phase1", "phase2"], "role": "Ticket queued in engineering backlog awaiting engineer action",                                  "critical": false },
+      { "id": "end-resolved",     "type": "end-event",          "lane": "system",      "phase": "phase3",    "role": "Known issue auto-resolved — user notified with solution, no human intervention needed",                         "critical": false },
+      { "id": "end-routed",       "type": "end-event",          "lane": "engineering", "phase": "phase3",    "role": "Novel ticket routed to best-matched engineer with full AI-generated context brief",                             "critical": false }
     ],
     "connectionInventory": [
-      { "id": "b-c1", "from": "b-start",    "to": "b-email",    "semantics": "User begins the process by composing an email" },
-      { "id": "b-c2", "from": "b-email",    "to": "b-inbox",    "semantics": "Email arrives in shared IT inbox (cross-lane message)" },
-      { "id": "b-c3", "from": "b-inbox",    "to": "b-classify", "semantics": "Agent opens email and proceeds to manual classification" },
-      { "id": "b-c4", "from": "b-classify", "to": "b-gateway",  "semantics": "Classification complete — priority level determined" },
-      { "id": "b-c5", "from": "b-gateway",  "to": "b-high",     "semantics": "Ticket classified as high priority", "conditions": "Keyword or agent judgment indicates urgency" },
-      { "id": "b-c6", "from": "b-gateway",  "to": "b-low",      "semantics": "Ticket classified as low priority",  "conditions": "No urgency indicators found" },
-      { "id": "a-c1", "from": "a-start",    "to": "a-portal",   "semantics": "User opens self-service portal to submit structured ticket" },
-      { "id": "a-c2", "from": "a-portal",   "to": "a-classify", "semantics": "Structured ticket data sent to auto-classify subprocess (cross-lane message)" },
-      { "id": "a-c3", "from": "a-classify", "to": "a-gateway",  "semantics": "Classification result forwarded to triage gateway (cross-lane message)" },
-      { "id": "a-c4", "from": "a-gateway",  "to": "a-high",     "semantics": "Ticket routed to high-priority queue", "conditions": "Classifier confidence >= threshold or critical category matched" },
-      { "id": "a-c5", "from": "a-gateway",  "to": "a-low",      "semantics": "Ticket routed to low-priority queue",  "conditions": "Classifier assigns routine/informational category" }
+      { "id": "c-start-email",         "from": "start",            "to": "send-email",        "semantics": "P0: User composes email to report IT issue" },
+      { "id": "c-email-inbox",         "from": "send-email",       "to": "check-inbox",       "semantics": "P0: Email arrives in shared IT inbox (cross-lane message)" },
+      { "id": "c-inbox-classify",      "from": "check-inbox",      "to": "manual-classify",   "semantics": "P0: Agent picks up email and begins manual triage" },
+      { "id": "c-classify-random",     "from": "manual-classify",  "to": "random-assign",     "semantics": "P0: Classified ticket assigned randomly to next available engineer" },
+      { "id": "c-random-assign",       "from": "random-assign",    "to": "assign-engineer",   "semantics": "P0: Assignment notification sent to engineering (cross-lane)" },
+      { "id": "c-assign-queued-p0",    "from": "assign-engineer",  "to": "end-queued",        "semantics": "P0: Engineer receives ticket in queue" },
+      { "id": "c-start-portal",        "from": "start",            "to": "submit-portal",     "semantics": "P1: User opens web portal to submit structured ticket" },
+      { "id": "c-portal-category",     "from": "submit-portal",    "to": "categorize-form",   "semantics": "P1: Portal presents category selection form" },
+      { "id": "c-category-priority",   "from": "categorize-form",  "to": "basic-priority",    "semantics": "P1: Category selected — agent sets priority level" },
+      { "id": "c-priority-classify",   "from": "basic-priority",   "to": "manual-classify",   "semantics": "P1: Priority set — agent performs final manual classification" },
+      { "id": "c-classify-gateway-p1", "from": "manual-classify",  "to": "priority-gateway",  "semantics": "P1: Classification complete — routes through priority gateway" },
+      { "id": "c-gw-high-escalate",    "from": "priority-gateway", "to": "escalate",          "semantics": "P1: Critical ticket escalated to management",            "conditions": "Severity = Critical" },
+      { "id": "c-escalate-assign",     "from": "escalate",         "to": "assign-engineer",   "semantics": "P1: Management authorizes priority engineering assignment" },
+      { "id": "c-gw-low-assign-p1",    "from": "priority-gateway", "to": "assign-engineer",   "semantics": "P1: Normal ticket assigned directly to engineer",        "conditions": "Severity < Critical" },
+      { "id": "c-assign-notify-p1",    "from": "assign-engineer",  "to": "email-notify",      "semantics": "P1: Assignment triggers email notification to user" },
+      { "id": "c-notify-queued-p1",    "from": "email-notify",     "to": "end-queued",        "semantics": "P1: User notified — ticket enters engineering queue" },
+      { "id": "c-start-portal-p2",     "from": "start",            "to": "submit-portal",     "semantics": "P2: User submits ticket via same web portal" },
+      { "id": "c-portal-classifier",   "from": "submit-portal",    "to": "ai-classifier",     "semantics": "P2: Portal submission forwarded to AI classifier (cross-lane)" },
+      { "id": "c-classifier-sla",      "from": "ai-classifier",    "to": "sla-timer",         "semantics": "P2: Classification triggers SLA timer based on severity" },
+      { "id": "c-sla-routing",         "from": "sla-timer",        "to": "routing-rules",     "semantics": "P2: SLA context passed to routing rules engine" },
+      { "id": "c-routing-gateway",     "from": "routing-rules",    "to": "priority-gateway",  "semantics": "P2: Rules engine output feeds priority gateway" },
+      { "id": "c-gw-high-assign-p2",   "from": "priority-gateway", "to": "assign-engineer",   "semantics": "P2: High-severity ticket assigned with SLA urgency",     "conditions": "AI severity >= High" },
+      { "id": "c-gw-low-assign-p2",    "from": "priority-gateway", "to": "assign-engineer",   "semantics": "P2: Low-severity ticket assigned to standard queue",     "conditions": "AI severity < High" },
+      { "id": "c-assign-notify-p2",    "from": "assign-engineer",  "to": "email-notify",      "semantics": "P2: Assignment triggers notification with SLA info" },
+      { "id": "c-notify-queued-p2",    "from": "email-notify",     "to": "end-queued",        "semantics": "P2: User notified with SLA commitment — ticket queued" },
+      { "id": "c-start-agent",         "from": "start",            "to": "ai-triage-agent",   "semantics": "P3: Ticket immediately ingested by AI triage agent" },
+      { "id": "c-agent-intent",        "from": "ai-triage-agent",  "to": "intent-analysis",   "semantics": "P3: Agent sends ticket to NLP intent analysis pipeline" },
+      { "id": "c-intent-predict",      "from": "intent-analysis",  "to": "predictive-route",  "semantics": "P3: Intent signals fed to predictive routing model" },
+      { "id": "c-predict-resolve-gw",  "from": "predictive-route", "to": "resolve-gateway",   "semantics": "P3: Routing prediction evaluated at known-issue gateway" },
+      { "id": "c-gw-known-resolve",    "from": "resolve-gateway",  "to": "auto-resolve",      "semantics": "P3: Known issue matched — automated resolution triggered", "conditions": "Match confidence >= 90%" },
+      { "id": "c-resolve-end",         "from": "auto-resolve",     "to": "end-resolved",      "semantics": "P3: Resolution applied and user notified automatically" },
+      { "id": "c-gw-unknown-assign",   "from": "resolve-gateway",  "to": "smart-assign",      "semantics": "P3: Novel issue routed to AI-matched engineer",           "conditions": "No known resolution pattern" },
+      { "id": "c-smart-routed",        "from": "smart-assign",     "to": "end-routed",        "semantics": "P3: Engineer assigned with full context brief from AI" }
     ],
     "behaviors": [
       {
+        "id": "beh-phase-slider",
+        "trigger": "User moves phase slider from Phase 0 to Phase 3",
+        "expectedOutcome": "Nodes and connections transition smoothly; Phase 0 email nodes disappear, Phase 1 portal appears, Phase 2 AI classifier appears, Phase 3 AI agent appears",
+        "involvedNodes": ["send-email", "submit-portal", "ai-classifier", "ai-triage-agent"],
+        "testRef": "J5-S1"
+      },
+      {
+        "id": "beh-diff-highlight",
+        "trigger": "User enables diff mode at Phase 2",
+        "expectedOutcome": "AI classifier and SLA timer highlighted as added; manual-classify and categorize-form highlighted as removed",
+        "involvedNodes": ["ai-classifier", "sla-timer", "manual-classify", "categorize-form"],
+        "testRef": "J5-S2"
+      },
+      {
         "id": "beh-drag-snap",
-        "trigger": "User drags a node in edit mode",
+        "trigger": "User drags ai-classifier node in edit mode",
         "expectedOutcome": "Node snaps to nearest 20px grid position; connections re-route in real time",
-        "involvedNodes": ["b-classify", "a-classify"],
+        "involvedNodes": ["ai-classifier"],
         "testRef": "J6-S3"
       },
       {
         "id": "beh-no-overlap",
-        "trigger": "User drags a node onto another node's bounding box",
-        "expectedOutcome": "Node resolves to nearest non-overlapping snapped position",
-        "involvedNodes": ["b-classify", "b-gateway"],
+        "trigger": "User drags ai-triage-agent onto intent-analysis position",
+        "expectedOutcome": "Drag resolves to nearest free grid cell; no bounding boxes overlap",
+        "involvedNodes": ["ai-triage-agent", "intent-analysis"],
         "testRef": "J14-S5"
       },
       {
         "id": "beh-simulation",
-        "trigger": "User clicks Simulate",
-        "expectedOutcome": "Token travels from a-start through a-portal, a-classify, a-gateway and terminates at a-high or a-low according to the active flow",
-        "involvedNodes": ["a-start", "a-portal", "a-classify", "a-gateway", "a-high"],
-        "testRef": "J5-S1"
-      },
-      {
-        "id": "beh-label-edit",
-        "trigger": "User double-clicks a node in edit mode",
-        "expectedOutcome": "Inline text input appears; pressing Enter commits new label to SVG",
-        "involvedNodes": ["b-classify"],
-        "testRef": "J6-S7"
+        "trigger": "User clicks Simulate at Phase 3",
+        "expectedOutcome": "Token travels from start through ai-triage-agent, intent-analysis, predictive-route, resolve-gateway, and terminates at either end-resolved or end-routed",
+        "involvedNodes": ["start", "ai-triage-agent", "intent-analysis", "predictive-route", "resolve-gateway", "auto-resolve", "end-resolved"],
+        "testRef": "J5-S3"
       }
     ],
     "invariants": [
-      "Every before-phase path from b-start reaches either b-high or b-low",
-      "Every after-phase path from a-start reaches either a-high or a-low",
-      "No two nodes within the same lane share the same x coordinate",
+      "Every phase path from start reaches a valid end-event for that phase",
+      "Phase 0: start -> send-email -> check-inbox -> manual-classify -> random-assign -> assign-engineer -> end-queued",
+      "Phase 1: start -> submit-portal -> categorize-form -> basic-priority -> manual-classify -> priority-gateway -> (escalate | assign-engineer) -> end-queued",
+      "Phase 2: start -> submit-portal -> ai-classifier -> sla-timer -> routing-rules -> priority-gateway -> assign-engineer -> end-queued",
+      "Phase 3: start -> ai-triage-agent -> intent-analysis -> predictive-route -> resolve-gateway -> (auto-resolve -> end-resolved | smart-assign -> end-routed)",
+      "No two nodes within the same lane share the same x coordinate at any single phase",
       "No two node bounding boxes overlap after drag completes",
       "Every gateway node has at least two outgoing connections",
-      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)"
+      "All x coordinates are multiples of 20 after drag (20px grid snap enforced)",
+      "SLA timer node is visible from Phase 2 onward (string phase semantics)"
     ]
   }
 }

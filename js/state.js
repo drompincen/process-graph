@@ -10,7 +10,9 @@ export const state = {
 
   // ── View ────────────────────────────────────────────────────
   viewMode: 'split',      // 'before' | 'after' | 'split' | 'overlay'
-  selectedPhase: null,    // Phase ID string or null (all phases)
+  selectedPhase: null,    // Phase ID string or null (all phases) — DEPRECATED: use currentPhaseIndex for N-phase model
+  currentPhaseIndex: 0,   // Active phase slider position (0-based index into graph.phases[])
+  diffMode: false,        // Whether diff highlighting is enabled (shows added/removed between adjacent phases)
   selectedFlowId: null,   // Flow ID string or null (default sequence)
   activeSequence: [],     // Resolved animation steps array
 
@@ -37,10 +39,6 @@ export const state = {
 
   // ── Process Groups ─────────────────────────────────────────
   expandedGroups: new Set(),  // Set of group node IDs that are expanded
-
-  // ── Validation ──────────────────────────────────────────────
-  loopModeEnabled: false,  // When true, cycle detection is skipped
-  validationIssues: [],    // Array of { severity, nodeId?, message }
 
   // ── Arrow & Connection options ───────────────────────────────
   arrowStyle: 'orthogonal',  // 'orthogonal' | 'curved'
@@ -78,6 +76,8 @@ export function initDom() {
     'view-mode-group',
     'btn-before', 'btn-split', 'btn-after', 'btn-overlay',
     'phase-dots',
+    'phase-nav', 'phase-slider', 'phase-slider-container',
+    'phase-dots-track', 'phase-current-label', 'btn-diff',
     'flow-selector',
     'btn-play', 'btn-next', 'btn-ff',
     'btn-story',
@@ -141,10 +141,6 @@ export function initDom() {
     // KPI overlay
     'btn-kpi-overlay',
 
-    // Validation panel
-    'btn-validate', 'validation-panel', 'validation-count',
-    'validation-list', 'btn-close-validation', 'chk-allow-loops',
-
     // Minimap
     'minimap', 'minimap-canvas', 'zoom-pct-label',
 
@@ -156,9 +152,6 @@ export function initDom() {
     'btn-time-sim', 'btn-agent-sim',
     'sim-clock', 'sim-speed-group',
     'sim-overlay',
-
-    // Decision-to-decision toggle
-    'chk-allow-d2d',
 
     // Arrow style & flow animation
     'radio-arrow-orthogonal', 'radio-arrow-curved',

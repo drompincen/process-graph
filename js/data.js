@@ -168,8 +168,10 @@ export function isValidConnection(fromType, toType, config) {
 }
 
 /**
+ * @deprecated Use isVisibleAtPhase() for the N-phase model.
+ *
  * Determine if a node/connection/zone is visible given the current view mode
- * and selected phase.
+ * and selected phase.  Retained for backward compatibility during migration.
  *
  * @param {object} item      - node or connection with .phase property
  * @param {string} viewMode  - 'before' | 'after' | 'split' | 'overlay'
@@ -221,6 +223,206 @@ export function itemBelongsToPhase(item, phaseId) {
 export function getPhaseIndex(graph, phaseId) {
   return (graph.phases || []).findIndex(p => p.id === phaseId);
 }
+
+// ── N-Phase Model (v2.0) ─────────────────────────────────────────────────────
+
+/**
+ * Normalize the phases array from a graph.  If the graph already carries a
+ * well-formed `phases` array it is returned as-is.  Otherwise a default
+ * two-phase array is synthesized so legacy before/after files keep working.
+ *
+ * @param {object} graph - parsed graph object
+ * @returns {Array<{id: string, label: string, color?: string}>}
+ */
+export function normalizePhases(graph) {
+  if (Array.isArray(graph.phases) && graph.phases.length > 0 && graph.phases[0].id !== undefined) {
+    return graph.phases;
+  }
+  // Default 2-phase for legacy graphs
+  return [
+    { id: 'phase0', label: 'Before', color: '#ef4444' },
+    { id: 'phase1', label: 'After',  color: '#22c55e' },
+  ];
+}
+
+/**
+ * Detect whether a graph uses the legacy before/after schema so that callers
+ * can decide whether phase-field normalization is needed.
+ *
+ * @param {object} graph - parsed graph object
+ * @returns {'1.0'|'1.5'|'2.0'} schema version string
+ */
+export function detectSchemaVersion(graph) {
+  const hasBeforeAfter = (graph.nodes || []).some(
+    n => n.phase === 'before' || n.phase === 'after'
+  );
+  const hasPhaseArray = Array.isArray(graph.phases) && graph.phases.length > 0
+    && graph.phases[0].id !== undefined;
+
+  if (hasBeforeAfter && !hasPhaseArray) return '1.0';
+  if (hasBeforeAfter && hasPhaseArray)  return '1.5';
+  if (!hasBeforeAfter && hasPhaseArray) return '2.0';
+  return '1.0';
+}
+
+/**
+ * Normalize a single item's legacy phase field in place.
+ * Converts `"before"` -> `["phase0"]`, `"after"` -> `"phase1"`, `"both"` -> omitted.
+ *
+ * @param {object}  item             - node or connection to normalize
+ * @param {boolean} hasLegacySchema  - true when the graph contains before/after values
+ */
+export function normalizePhaseField(item, hasLegacySchema) {
+  if (!hasLegacySchema) return;
+
+  const p = item.phase;
+  if (p === 'before') {
+    item.phase = ['phase0'];
+  } else if (p === 'after') {
+    item.phase = 'phase1';
+  } else if (p === 'both') {
+    delete item.phase;
+  }
+  // arrays and other strings pass through unchanged
+}
+
+/**
+ * Determine if an item (node or connection) is visible at a given phase index
+ * within the N-phase model.
+ *
+ * Phase field semantics:
+ *  - omitted/null  → always visible
+ *  - string        → "introduced at" that phase; visible from that index onward
+ *  - array         → "visible exactly in" the listed phases
+ *
+ * Legacy values ("before"/"after") are handled for backward compatibility even
+ * if the caller has not run normalizePhaseField().
+ *
+ * @param {object}   item              - node or connection with optional .phase
+ * @param {number}   currentPhaseIndex - 0-based index into the phases array
+ * @param {Array<{id: string}>} phases - the graph's phases array
+ * @returns {boolean}
+ */
+export function isVisibleAtPhase(item, currentPhaseIndex, phases) {
+  const phase = item.phase;
+
+  // No phase field: always visible
+  if (phase === undefined || phase === null) return true;
+
+  if (typeof phase === 'string') {
+    // --- backward-compat shims for legacy values ---
+    if (phase === 'before') {
+      // "before" = visible only at phase0
+      return currentPhaseIndex === 0;
+    }
+    if (phase === 'after') {
+      // "after" = introduced at phase1, persists onward
+      return currentPhaseIndex >= 1;
+    }
+    if (phase === 'both') {
+      return true;
+    }
+
+    // String = "introduced at this phase, persists onward"
+    const introIndex = phases.findIndex(p => p.id === phase);
+    if (introIndex === -1) return true; // unknown phase ID, show by default
+    return currentPhaseIndex >= introIndex;
+  }
+
+  if (Array.isArray(phase)) {
+    // Array = visible exactly in these phases
+    const currentPhaseId = phases[currentPhaseIndex]?.id;
+    return phase.some(p => {
+      if (p === 'before') return currentPhaseIndex === 0;
+      if (p === 'after')  return currentPhaseIndex >= 1;
+      return p === currentPhaseId;
+    });
+  }
+
+  return true; // fallback
+}
+
+/**
+ * Check whether a connection is visible at the given phase.
+ * A connection is only renderable when its own phase allows visibility AND
+ * both endpoint nodes are also visible.
+ *
+ * @param {object}   conn              - connection object
+ * @param {number}   currentPhaseIndex - 0-based index into phases
+ * @param {Array}    phases            - the graph's phases array
+ * @param {object}   nodesById         - lookup map { nodeId: nodeObject }
+ * @returns {boolean}
+ */
+export function isConnectionVisibleAtPhase(conn, currentPhaseIndex, phases, nodesById) {
+  if (!isVisibleAtPhase(conn, currentPhaseIndex, phases)) return false;
+
+  const fromNode = nodesById[conn.from];
+  const toNode   = nodesById[conn.to];
+  if (fromNode && !isVisibleAtPhase(fromNode, currentPhaseIndex, phases)) return false;
+  if (toNode   && !isVisibleAtPhase(toNode,   currentPhaseIndex, phases)) return false;
+
+  return true;
+}
+
+/**
+ * Compute the diff status of an item between the current phase and the
+ * previous phase.  Returns a CSS-friendly classification string or null.
+ *
+ * @param {object}   item              - node or connection
+ * @param {number}   currentPhaseIndex - 0-based index into phases
+ * @param {Array<{id: string}>} phases - the graph's phases array
+ * @returns {'added'|'removed'|'modified'|null}
+ */
+export function getDiffStatus(item, currentPhaseIndex, phases) {
+  if (currentPhaseIndex === 0) return null; // no diff at baseline
+
+  const phase     = item.phase;
+  const currentId = phases[currentPhaseIndex]?.id;
+  const prevId    = phases[currentPhaseIndex - 1]?.id;
+
+  // Added: string phase matching current phase exactly (introduced here)
+  if (typeof phase === 'string' && phase === currentId) {
+    return 'added';
+  }
+
+  // Removed: array phase that includes previous but not current
+  if (Array.isArray(phase)) {
+    const inPrev = phase.includes(prevId);
+    const inCurr = phase.includes(currentId);
+    if (inPrev && !inCurr) return 'removed';
+  }
+
+  // Fallback: visibility-based diff
+  const visibleNow  = isVisibleAtPhase(item, currentPhaseIndex, phases);
+  const visiblePrev = isVisibleAtPhase(item, currentPhaseIndex - 1, phases);
+  if (visibleNow  && !visiblePrev) return 'added';
+  if (!visibleNow && visiblePrev)  return 'removed';
+
+  // Explicit diff override from JSON (for edge cases like modified behavior)
+  if (item.diff === 'modified') return 'modified';
+
+  return null; // unchanged
+}
+
+/**
+ * Normalize legacy metrics keys.  If the graph has `metrics.before` /
+ * `metrics.after` but no `metrics.phase0` / `metrics.phase1`, remap them.
+ * Mutates the graph object in place.
+ *
+ * @param {object} graph - parsed graph object
+ */
+export function normalizeMetrics(graph) {
+  if (!graph.metrics) return;
+
+  if (graph.metrics.before && !graph.metrics.phase0) {
+    graph.metrics.phase0 = graph.metrics.before;
+  }
+  if (graph.metrics.after && !graph.metrics.phase1) {
+    graph.metrics.phase1 = graph.metrics.after;
+  }
+}
+
+// ── End N-Phase Model ────────────────────────────────────────────────────────
 
 /**
  * Resolve the active animation sequence from state.

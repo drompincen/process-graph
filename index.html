@@ -38,8 +38,20 @@
 
     <div class="h-divider"></div>
 
-    <!-- Phase dots injected here by diff.js -->
+    <!-- Phase dots injected here by diff.js (2-phase model) -->
     <div id="phase-dots"></div>
+
+    <!-- Phase Navigation (shown when graph has >2 phases) -->
+    <div id="phase-nav" style="display:none">
+      <div class="h-divider"></div>
+      <span class="phase-label">Phase:</span>
+      <div id="phase-slider-container">
+        <input type="range" id="phase-slider" min="0" max="3" value="0" step="1">
+        <div id="phase-dots-track"></div>
+      </div>
+      <span id="phase-current-label">0 — Baseline</span>
+      <button id="btn-diff" class="view-btn" title="Highlight changes between phases">Diff</button>
+    </div>
 
     <!-- Flow selector (shown when graph.flows present) -->
     <select id="flow-selector" style="display:none" title="Select process path"></select>
@@ -76,24 +88,8 @@
 
     <div class="h-divider"></div>
 
-    <!-- Node palette toggle (edit mode) -->
-    <button id="btn-toggle-palette" style="display:none" title="Toggle node palette">+ Nodes</button>
-
-    <!-- Auto-layout (edit mode) -->
-    <button id="btn-auto-layout" style="display:none" title="Auto-arrange nodes">⊞ Layout</button>
-
-    <div class="h-divider"></div>
-
     <!-- KPI overlay toggle -->
     <button id="btn-kpi-overlay" title="Toggle KPI overlays">KPI</button>
-
-    <div class="h-divider"></div>
-
-    <!-- Validate button -->
-    <button id="btn-validate" title="Validate process">&#x2713; Validate</button>
-
-    <!-- Versions button -->
-    <button id="btn-versions" title="Save/restore diagram versions">Versions</button>
 
     <div class="h-divider"></div>
 
@@ -146,43 +142,6 @@
      ═══════════════════════════════════════════════════════════ -->
 <div id="app-body">
 
-  <!-- LEFT: Node Palette (edit mode only, hidden by default) -->
-  <aside id="node-palette" class="palette" style="display:none">
-    <h3>Nodes</h3>
-    <div class="palette-item" data-type="task" draggable="true">
-      <svg width="24" height="16" viewBox="0 0 24 16"><rect rx="4" width="24" height="16" fill="#2a3550" stroke="#4a9eff" stroke-width="1"/></svg>
-      <span>Task</span>
-    </div>
-    <div class="palette-item" data-type="gateway" draggable="true">
-      <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,0 20,10 10,20 0,10" fill="#2a3550" stroke="#f59e0b" stroke-width="1"/></svg>
-      <span>Decision</span>
-    </div>
-    <div class="palette-item" data-type="merge" draggable="true">
-      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#2a3550" stroke="#94a3b8" stroke-width="1"/></svg>
-      <span>Merge</span>
-    </div>
-    <div class="palette-item" data-type="process-group" draggable="true">
-      <svg width="28" height="20" viewBox="0 0 28 20"><rect rx="2" width="28" height="20" fill="none" stroke="#4a9eff" stroke-width="1" stroke-dasharray="4"/></svg>
-      <span>Group</span>
-    </div>
-    <div class="palette-item" data-type="start-event" draggable="true">
-      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e" stroke="#16a34a" stroke-width="1.5"/></svg>
-      <span>Start</span>
-    </div>
-    <div class="palette-item" data-type="end-event" draggable="true">
-      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#ef4444" stroke="#dc2626" stroke-width="2"/></svg>
-      <span>End</span>
-    </div>
-    <div class="palette-item" data-type="subprocess" draggable="true">
-      <svg width="24" height="16" viewBox="0 0 24 16"><rect rx="4" width="24" height="16" fill="#2a3550" stroke="#4a9eff" stroke-width="1"/><text x="12" y="12" text-anchor="middle" font-size="9" fill="#94a3b8">+</text></svg>
-      <span>Subprocess</span>
-    </div>
-    <div class="palette-item" data-type="intermediate-event" draggable="true">
-      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#4a9eff" stroke-width="1.5"/><circle cx="8" cy="8" r="5" fill="none" stroke="#4a9eff" stroke-width="0.8"/></svg>
-      <span>Intermediate</span>
-    </div>
-  </aside>
-
   <!-- LEFT: JSON Editor (hidden by default) -->
   <aside id="editor-pane" style="display:none">
     <div id="editor-toolbar">
@@ -225,27 +184,6 @@
 
   </main>
 
-  <!-- RIGHT: Property Editor Panel (shown when a single node is selected in edit mode) -->
-  <aside id="property-panel" class="panel-right" style="display:none">
-    <div class="prop-header">
-      <h3>Properties</h3>
-      <button id="prop-panel-close" title="Close">&times;</button>
-    </div>
-    <div id="prop-fields"></div>
-  </aside>
-
-  <!-- RIGHT: Version Panel (toggled via header button) -->
-  <aside id="version-panel" class="panel-right" style="display:none">
-    <div class="prop-header">
-      <h3>Versions</h3>
-    </div>
-    <div class="version-save-row">
-      <input id="version-name-input" placeholder="Version name" />
-      <button id="btn-save-version">Save</button>
-    </div>
-    <ul id="version-list"></ul>
-  </aside>
-
 </div>
 
 <!-- Context menu (positioned absolutely, hidden by default) -->
@@ -266,20 +204,6 @@
     <div id="narrative-kpi-hud"></div>
   </div>
   <button id="btn-back-to-story" style="display:none">← Back to Story</button>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     VALIDATION PANEL
-     ═══════════════════════════════════════════════════════════ -->
-<div id="validation-panel" class="panel-bottom" style="display:none">
-  <div class="validation-header">
-    <span class="validation-title">Validation Results</span>
-    <span id="validation-count" class="badge">0 issues</span>
-    <label class="validation-loop-toggle"><input type="checkbox" id="chk-allow-loops"> Allow loops</label>
-    <label class="validation-loop-toggle"><input type="checkbox" id="chk-allow-d2d"> Allow decision-to-decision</label>
-    <button id="btn-close-validation" title="Close">&times;</button>
-  </div>
-  <ul id="validation-list"></ul>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -328,6 +252,145 @@
      ENTRY POINT
      ═══════════════════════════════════════════════════════════ -->
 <script type="module" src="js/main.js"></script>
+
+<!-- Phase slider wiring (multi-phase model) -->
+<script type="module">
+import { state, dom } from './js/state.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait a tick for main.js init to complete and populate dom{}
+  setTimeout(wirePhaseNav, 0);
+});
+
+function wirePhaseNav() {
+  const slider    = dom.phaseSlider;
+  const container = dom.phaseNav;
+  const label     = dom.phaseCurrentLabel;
+  const dotsTrack = dom.phaseDotsTrack;
+  const diffBtn   = dom.btnDiff;
+  const viewGroup = dom.viewModeGroup;
+
+  if (!slider || !container) {
+    console.warn('[phase-nav] DOM elements not found, skipping phase nav wiring');
+    return;
+  }
+
+  // ── Observe graph loads via json-selector changes and MutationObserver ──
+  // We poll state.graph on selector change and initial load
+  const jsonSel = dom.jsonSelector;
+  if (jsonSel) {
+    jsonSel.addEventListener('change', () => {
+      // Small delay to let loadDiagramFile finish
+      setTimeout(() => syncPhaseNavVisibility(), 200);
+    });
+  }
+
+  // Also observe when diagram-svg children change (indicates a render)
+  const svgEl = dom.diagramSvg;
+  if (svgEl) {
+    const observer = new MutationObserver(() => syncPhaseNavVisibility());
+    observer.observe(svgEl, { childList: true, subtree: true });
+  }
+
+  // Initial sync after a short delay for the first diagram load
+  setTimeout(() => syncPhaseNavVisibility(), 500);
+
+  // ── Show/hide phase nav based on graph.phases ──
+  function syncPhaseNavVisibility() {
+    const g = state.graph;
+    if (!g || !g.phases || g.phases.length <= 2) {
+      container.style.display = 'none';
+      // Show the old view-mode buttons
+      if (viewGroup) viewGroup.style.display = '';
+      return;
+    }
+
+    // Multi-phase: show slider, hide old view-mode buttons
+    container.style.display = 'flex';
+    if (viewGroup) viewGroup.style.display = 'none';
+
+    // Configure slider range
+    const maxIdx = g.phases.length - 1;
+    slider.min = '0';
+    slider.max = String(maxIdx);
+
+    // Clamp currentPhaseIndex
+    if (state.currentPhaseIndex > maxIdx) state.currentPhaseIndex = maxIdx;
+    slider.value = String(state.currentPhaseIndex);
+
+    renderDots(g.phases, state.currentPhaseIndex);
+    updateLabel(g.phases, state.currentPhaseIndex);
+  }
+
+  // ── Render dot indicators under the slider ──
+  function renderDots(phases, activeIdx) {
+    if (!dotsTrack) return;
+    dotsTrack.innerHTML = '';
+    phases.forEach((phase, idx) => {
+      const dot = document.createElement('span');
+      dot.className = 'phase-dot';
+      if (idx <= activeIdx) dot.classList.add('reached');
+      if (idx === activeIdx) dot.classList.add('active');
+      dot.title = phase.label || phase.id || `Phase ${idx}`;
+      dotsTrack.appendChild(dot);
+    });
+  }
+
+  // ── Update the label text ──
+  function updateLabel(phases, idx) {
+    if (!label) return;
+    const phase = phases[idx];
+    if (phase && phase.label) {
+      label.textContent = phase.label;
+    } else if (phase && phase.id) {
+      label.textContent = `${idx} — ${phase.id}`;
+    } else {
+      label.textContent = `Phase ${idx}`;
+    }
+  }
+
+  // ── Slider input handler ──
+  slider.addEventListener('input', () => {
+    const idx = parseInt(slider.value, 10);
+    state.currentPhaseIndex = idx;
+
+    const g = state.graph;
+    if (!g || !g.phases) return;
+
+    renderDots(g.phases, idx);
+    updateLabel(g.phases, idx);
+
+    // Trigger re-render if renderAll is available
+    triggerReRender();
+  });
+
+  // ── Diff button toggle ──
+  if (diffBtn) {
+    diffBtn.addEventListener('click', () => {
+      state.diffMode = !state.diffMode;
+      diffBtn.classList.toggle('active', state.diffMode);
+      triggerReRender();
+    });
+  }
+
+  // ── Trigger re-render by dispatching a custom event ──
+  // main.js modules can listen for this; we also try calling renderAll directly
+  function triggerReRender() {
+    // Dispatch a custom event that renderer/diff modules can listen for
+    window.dispatchEvent(new CustomEvent('phase-change', {
+      detail: {
+        phaseIndex: state.currentPhaseIndex,
+        diffMode: state.diffMode
+      }
+    }));
+
+    // Also try to call renderAll via dynamic import (safe if module exists)
+    import('./js/renderer.js').then(mod => {
+      if (mod.renderAll && state.graph) mod.renderAll(state.graph);
+    }).catch(() => { /* renderer not loaded yet */ });
+  }
+}
+</script>
 
 </body>
 </html>

@@ -23,10 +23,14 @@ export async function getAllNodeBBoxes(page) {
       const bbox = g.getBBox();
       if (bbox.width === 0 && bbox.height === 0) continue;
 
+      // Extract node type from CSS class (e.g. 'node node-gateway' -> 'gateway')
+      const typeMatch = g.className.baseVal && g.className.baseVal.match(/node-(\S+)/);
+      const nodeType = typeMatch ? typeMatch[1] : null;
+
       const ctm = g.getCTM();
       const svgCtm = svg.getCTM();
       if (!ctm || !svgCtm) {
-        results.push({ id, x: bbox.x, y: bbox.y, w: bbox.width, h: bbox.height });
+        results.push({ id, type: nodeType, x: bbox.x, y: bbox.y, w: bbox.width, h: bbox.height });
         continue;
       }
 
@@ -46,7 +50,7 @@ export async function getAllNodeBBoxes(page) {
         minX = Math.min(minX, t.x); minY = Math.min(minY, t.y);
         maxX = Math.max(maxX, t.x); maxY = Math.max(maxY, t.y);
       }
-      results.push({ id, x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+      results.push({ id, type: nodeType, x: minX, y: minY, w: maxX - minX, h: maxY - minY });
     }
     return results;
   });

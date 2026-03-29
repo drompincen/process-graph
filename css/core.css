@@ -315,6 +315,118 @@ select:focus { outline: none; border-color: var(--accent); }
 .phase-dot-btn:hover { border-color: var(--border-hi); color: var(--text-mid); }
 .phase-dot-btn.active { border-color: var(--accent); color: var(--accent); background: var(--bg-elevated); }
 
+/* ── Phase slider navigation ────────────────────────────────── */
+#phase-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phase-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+#phase-slider-container {
+  position: relative;
+  width: 140px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+#phase-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border-mid);
+  border-radius: 2px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+#phase-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-panel);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+#phase-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+}
+
+#phase-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-panel);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  cursor: pointer;
+}
+
+#phase-slider::-moz-range-track {
+  height: 4px;
+  background: var(--border-mid);
+  border-radius: 2px;
+  border: none;
+}
+
+#phase-dots-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 1;
+  padding: 0 1px;
+}
+
+.phase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-hi);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+
+.phase-dot.reached {
+  background: var(--accent);
+}
+
+.phase-dot.active {
+  background: var(--accent);
+  transform: scale(1.4);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+#phase-current-label {
+  font-size: 11px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  min-width: 100px;
+}
+
 /* ── Edit mode cursor ────────────────────────────────────────── */
 #diagram-svg.edit-active .node { cursor: grab; }
 #diagram-svg.edit-active .node:active { cursor: grabbing; }
@@ -330,6 +442,8 @@ select:focus { outline: none; border-color: var(--accent); }
   .brand { display: none; }
   .h-divider:first-of-type { display: none; }
   #phase-dots { display: none; }
+  #phase-nav #phase-current-label { display: none; }
+  #phase-slider-container { width: 100px; }
 }
 
 @media (max-width: 640px) {

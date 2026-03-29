@@ -26,6 +26,7 @@ import { state, dom } from './state.js';
 import { LANE_COLORS, DIFF_COLORS, STATE_ICONS, NODE_FILL, PORT_DEFS, LANE_TYPES, ICON_PATHS } from './constants.js';
 import { NODE_DIMS, computeLayout, getPortPosition, autoResizeLanes } from './layout.js';
 import { isVisible } from './data.js';
+import { normalizePhases, isVisibleAtPhase, getDiffStatus } from './phase.js';
 import { renderConnections } from './routing.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -1613,14 +1614,49 @@ export function renderNodes(graph, layout, viewMode) {
     }
   }
 
-  const visibleNodes = graph.nodes.filter(
-    n => isVisible(n, viewMode, state.selectedPhase) && !hiddenByGroup.has(n.id)
-  );
+  // ── Phase-based vs legacy visibility filtering ──────────────────────────────
+  const phases = normalizePhases(graph);
+  const phaseIndex = state.currentPhaseIndex ?? 0;
+  const useMultiPhase = phases.length > 2;
+
+  let visibleNodes;
+  if (useMultiPhase) {
+    visibleNodes = graph.nodes.filter(
+      n => isVisibleAtPhase(n, phaseIndex, phases) && !hiddenByGroup.has(n.id)
+    );
+
+    // In diff mode, also include nodes that were just removed (visible at
+    // previous phase but not current) so they render as diff-removed ghosts.
+    if (state.diffMode && phaseIndex > 0) {
+      const removedNodes = graph.nodes.filter(n => {
+        if (hiddenByGroup.has(n.id)) return false;
+        if (isVisibleAtPhase(n, phaseIndex, phases)) return false; // already included
+        // Was visible at previous phase?
+        return isVisibleAtPhase(n, phaseIndex - 1, phases);
+      });
+      visibleNodes = visibleNodes.concat(removedNodes);
+    }
+
+    // Compute runtime diff status (_diff) for each visible node
+    for (const node of visibleNodes) {
+      const diff = getDiffStatus(node, phaseIndex, phases);
+      node._diff = diff; // used by renderDiffOverlay
+    }
+  } else {
+    // Legacy before/after path (unchanged)
+    visibleNodes = graph.nodes.filter(
+      n => isVisible(n, viewMode, state.selectedPhase) && !hiddenByGroup.has(n.id)
+    );
+  }
 
   for (const node of visibleNodes) {
     const bounds = layout.nodes[node.id];
     const g = createNodeGroup(node, bounds);
     if (g) {
+      // Apply diff CSS class for multi-phase diff highlighting
+      if (useMultiPhase && node._diff) {
+        g.classList.add(`diff-${node._diff}`);
+      }
       dom.nodesLayer.appendChild(g);
       renderDiffOverlay(node, bounds, dom.overlaysLayer);
     }

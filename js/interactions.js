@@ -15,7 +15,7 @@
 import { state, dom } from './state.js';
 import { renderAll, renderPortIndicators, removePortIndicators, svgEl } from './renderer.js';
 import { rerouteNodeConnections } from './routing.js';
-import { NODE_DIMS, getAbsolutePortPosition, assignGatewayPort, computeLayout, findLaneAtY, autoResizeLanes, autoLayout } from './layout.js';
+import { NODE_DIMS, getAbsolutePortPosition, assignGatewayPort, computeLayout, findLaneAtY, autoResizeLanes } from './layout.js';
 import { canConnect } from './data.js';
 import { LANE_COLORS, LANE_TYPES, DEFAULT_LANE_TYPE } from './constants.js';
 
@@ -855,7 +855,6 @@ function clearSelection() {
   document.querySelectorAll('.node-selected').forEach(el => el.classList.remove('node-selected'));
   document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('.conn-selected').forEach(el => el.classList.remove('conn-selected'));
-  hidePropertyPanel();
 }
 
 function selectNode(nodeId, additive) {
@@ -867,11 +866,6 @@ function selectNode(nodeId, additive) {
     state.selectedNodes.add(nodeId);
   }
   applySelectionHighlights();
-  if (state.selectedNodes.size === 1) {
-    showPropertyPanel([...state.selectedNodes][0]);
-  } else {
-    hidePropertyPanel();
-  }
 }
 
 function selectConnection(connId) {
@@ -903,28 +897,6 @@ function applyConnectionHighlight(connId) {
 // ─────────────────────────────────────────────────────────────
 // Node click selection
 // ─────────────────────────────────────────────────────────────
-
-function initNodeSelection() {
-  const nodesLayer = dom.nodesLayer;
-  if (!nodesLayer) return;
-  let clickTimer = null;
-  nodesLayer.addEventListener('click', (e) => {
-    if (!state.isEditing) return;
-    const group = findNodeGroup(e.target);
-    if (!group) return;
-    const nodeId = group.dataset.nodeId;
-    const shiftKey = e.shiftKey;
-    e.stopPropagation();
-    // Defer selection so a double-click can cancel it — opening the property
-    // panel resizes the SVG container and shifts node positions, which causes
-    // the second click of a dblclick to miss the node.
-    clearTimeout(clickTimer);
-    clickTimer = setTimeout(() => selectNode(nodeId, shiftKey), 250);
-  });
-  nodesLayer.addEventListener('dblclick', () => {
-    clearTimeout(clickTimer);
-  });
-}
 
 // ─────────────────────────────────────────────────────────────
 // Connection click selection
@@ -1009,122 +981,6 @@ function deleteSelectedConnection() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Property panel
-// ─────────────────────────────────────────────────────────────
-
-const PROP_FIELDS = {
-  _common: [
-    { key: 'label', label: 'Name', type: 'text' },
-    { key: 'description', label: 'Description', type: 'textarea' },
-  ],
-  'task': [
-    { key: 'duration', label: 'Duration', type: 'text' },
-    { key: 'owner', label: 'Owner', type: 'text' },
-    { key: 'sla', label: 'SLA', type: 'text' },
-    { key: 'tags', label: 'Tags', type: 'text', placeholder: 'comma-separated' },
-  ],
-  'gateway': [
-    { key: 'condition', label: 'Condition', type: 'text' },
-    { key: 'ruleSet', label: 'Rule Set', type: 'textarea' },
-  ],
-  'process-group': [
-    { key: 'kpis', label: 'KPIs', type: 'text' },
-    { key: 'entryCriteria', label: 'Entry Criteria', type: 'textarea' },
-    { key: 'exitCriteria', label: 'Exit Criteria', type: 'textarea' },
-  ],
-  'persona': [
-    { key: 'label', label: 'Name', type: 'text' },
-    { key: 'role', label: 'Role', type: 'text' },
-    { key: 'department', label: 'Department', type: 'text' },
-  ],
-  'system': [
-    { key: 'label', label: 'Name', type: 'text' },
-    { key: 'systemType', label: 'Type', type: 'text' },
-    { key: 'integrationPoints', label: 'Integration Points', type: 'textarea' },
-  ],
-  'agent': [
-    { key: 'label', label: 'Name', type: 'text' },
-    { key: 'capabilities', label: 'Capabilities', type: 'textarea' },
-    { key: 'triggers', label: 'Triggers', type: 'textarea' },
-  ],
-};
-
-function showPropertyPanel(nodeId) {
-  const panel = dom.propertyPanel;
-  const fieldsDiv = dom.propFields;
-  if (!panel || !fieldsDiv || !state.graph) return;
-
-  const nodeData = state.graph.nodes.find(n => n.id === nodeId);
-  if (!nodeData) return;
-
-  fieldsDiv.innerHTML = '';
-
-  const badge = document.createElement('div');
-  badge.className = 'prop-group';
-  badge.innerHTML = `<span class="prop-type-badge">${nodeData.type}</span>`;
-  fieldsDiv.appendChild(badge);
-
-  const commonFields = PROP_FIELDS._common || [];
-  const typeFields = PROP_FIELDS[nodeData.type] || [];
-  const hasOwnLabel = typeFields.some(f => f.key === 'label');
-  const fields = hasOwnLabel
-    ? [...typeFields, ...commonFields.filter(cf => cf.key !== 'label')]
-    : [...commonFields, ...typeFields];
-
-  for (const field of fields) {
-    const group = document.createElement('div');
-    group.className = 'prop-group';
-
-    const lbl = document.createElement('label');
-    lbl.textContent = field.label;
-    group.appendChild(lbl);
-
-    let input;
-    if (field.type === 'textarea') {
-      input = document.createElement('textarea');
-      input.rows = 3;
-    } else {
-      input = document.createElement('input');
-      input.type = 'text';
-    }
-    if (field.placeholder) input.placeholder = field.placeholder;
-
-    const val = nodeData[field.key];
-    input.value = (val != null) ? (Array.isArray(val) ? val.join(', ') : String(val)) : '';
-
-    let undoPushed = false;
-    input.addEventListener('input', () => {
-      if (!undoPushed) { pushUndo(); undoPushed = true; }
-      const newVal = input.value;
-      if (field.key === 'tags') {
-        nodeData[field.key] = newVal.split(',').map(s => s.trim()).filter(Boolean);
-      } else {
-        nodeData[field.key] = newVal;
-      }
-      renderAll(state.graph);
-      applySelectionHighlights();
-    });
-    input.addEventListener('blur', () => { undoPushed = false; });
-
-    group.appendChild(input);
-    fieldsDiv.appendChild(group);
-  }
-
-  panel.style.display = '';
-}
-
-function hidePropertyPanel() {
-  const panel = dom.propertyPanel;
-  if (panel) panel.style.display = 'none';
-}
-
-function initPropertyPanel() {
-  const closeBtn = dom.propPanelClose;
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => clearSelection());
-  }
-}
-
 // ─────────────────────────────────────────────────────────────
 // Context menu
 // ─────────────────────────────────────────────────────────────
@@ -1326,19 +1182,6 @@ function initEditModeToggle() {
     document.body.classList.toggle('is-editing', chk.checked);
     if (svg) {
       svg.classList.toggle('edit-active', chk.checked);
-    }
-    // Show/hide palette toggle button and auto-layout button
-    const btnPalette = dom.btnTogglePalette;
-    if (btnPalette) {
-      btnPalette.style.display = chk.checked ? '' : 'none';
-    }
-    const btnLayout = dom.btnAutoLayout;
-    if (btnLayout) {
-      btnLayout.style.display = chk.checked ? '' : 'none';
-    }
-    // Hide palette when leaving edit mode
-    if (!chk.checked && dom.nodePalette) {
-      dom.nodePalette.style.display = 'none';
     }
     // Clear selection when leaving edit mode
     if (!chk.checked) {
@@ -1573,237 +1416,6 @@ function initPortIndicators() {
   }, true);
 }
 
-// ─────────────────────────────────────────────────────────────
-// Node palette toggle
-// ─────────────────────────────────────────────────────────────
-
-function initPaletteToggle() {
-  const btn = dom.btnTogglePalette;
-  const palette = dom.nodePalette;
-  if (!btn || !palette) return;
-
-  btn.addEventListener('click', () => {
-    const isVisible = palette.style.display !== 'none';
-    palette.style.display = isVisible ? 'none' : '';
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Drag from palette to canvas
-// ─────────────────────────────────────────────────────────────
-
-/** Default labels for each palette node type */
-const DEFAULT_LABELS = {
-  'task':               'Task',
-  'gateway':            'Decision',
-  'merge':              'Merge',
-  'process-group':      'Group',
-  'start-event':        'Start',
-  'end-event':          'End',
-  'subprocess':         'Subprocess',
-  'intermediate-event': 'Event',
-};
-
-/** Snap to 10px grid for palette drops (per spec) */
-const PALETTE_GRID = 10;
-function snapPalette(v) {
-  return Math.round(v / PALETTE_GRID) * PALETTE_GRID;
-}
-
-/**
- * Determine which lane a Y coordinate falls within.
- * Returns the lane ID or null if outside all lanes.
- */
-function laneFromY(svgY) {
-  if (!state.layout || !state.layout.lanes) return null;
-  for (const lane of state.layout.lanes) {
-    if (svgY >= lane.y && svgY < lane.y + lane.height) {
-      return lane.id;
-    }
-  }
-  // Clamp to nearest lane
-  const lanes = state.layout.lanes;
-  if (lanes.length === 0) return null;
-  if (svgY < lanes[0].y) return lanes[0].id;
-  return lanes[lanes.length - 1].id;
-}
-
-function initPaletteDrag() {
-  const palette = dom.nodePalette;
-  const svgContainer = dom.svgContainer;
-  const diagramSvg = dom.diagramSvg;
-  if (!palette || !svgContainer || !diagramSvg) return;
-
-  let ghostGroup = null;  // SVG <g> preview element
-  let dragType = null;
-
-  // dragstart on palette items — set dataTransfer type
-  palette.addEventListener('dragstart', (e) => {
-    const item = e.target.closest('.palette-item');
-    if (!item) return;
-    dragType = item.dataset.type;
-    e.dataTransfer.setData('text/plain', dragType);
-    e.dataTransfer.effectAllowed = 'copy';
-  });
-
-  // dragover on svg-container — show ghost preview
-  svgContainer.addEventListener('dragover', (e) => {
-    if (!state.isEditing || !dragType) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-
-    const pt = svgPoint(diagramSvg, e.clientX, e.clientY);
-    const cx = snapPalette(pt.x);
-    const cy = snapPalette(pt.y);
-
-    if (!ghostGroup) {
-      ghostGroup = createGhostPreview(dragType);
-      if (ghostGroup) {
-        dom.overlaysLayer.appendChild(ghostGroup);
-      }
-    }
-    if (ghostGroup) {
-      ghostGroup.setAttribute('transform', `translate(${cx},${cy})`);
-    }
-  });
-
-  // dragleave — remove ghost when leaving canvas
-  svgContainer.addEventListener('dragleave', (e) => {
-    if (e.relatedTarget && svgContainer.contains(e.relatedTarget)) return;
-    removeGhost();
-  });
-
-  // drop — create the new node
-  svgContainer.addEventListener('drop', (e) => {
-    e.preventDefault();
-    removeGhost();
-
-    if (!state.isEditing || !state.graph) return;
-
-    const type = e.dataTransfer.getData('text/plain');
-    if (!type || !DEFAULT_LABELS[type]) return;
-
-    const pt = svgPoint(diagramSvg, e.clientX, e.clientY);
-    const cx = snapPalette(pt.x);
-    const cy = snapPalette(pt.y);
-
-    const laneId = laneFromY(cy);
-    if (!laneId) return;
-
-    const newNode = {
-      id: `node-${Date.now()}`,
-      type: type,
-      label: DEFAULT_LABELS[type],
-      lane: laneId,
-      x: cx,
-      phase: 'both',
-    };
-
-    pushUndo();
-    state.graph.nodes.push(newNode);
-    renderAll(state.graph);
-
-    dragType = null;
-  });
-
-  // Clean up drag type on dragend (fires on the source element)
-  palette.addEventListener('dragend', () => {
-    removeGhost();
-    dragType = null;
-  });
-
-  function removeGhost() {
-    if (ghostGroup && ghostGroup.parentNode) {
-      ghostGroup.parentNode.removeChild(ghostGroup);
-    }
-    ghostGroup = null;
-  }
-}
-
-/**
- * Create an SVG <g> element as a ghost preview for a node type.
- * Positioned at origin (0,0) — caller translates via transform.
- */
-function createGhostPreview(type) {
-  const g = svgEl('g', { class: 'palette-ghost' });
-
-  const dims = NODE_DIMS[type] || { w: 110, h: 40 };
-  const halfW = dims.w / 2;
-  const halfH = dims.h / 2;
-
-  switch (type) {
-    case 'task':
-    case 'subprocess': {
-      g.appendChild(svgEl('rect', {
-        x: -halfW, y: -halfH,
-        width: dims.w, height: dims.h,
-        rx: 8,
-        fill: '#1e2a3a', stroke: '#4a9eff', 'stroke-width': 1.5,
-      }));
-      break;
-    }
-    case 'gateway': {
-      const pts = `0,${-halfH} ${halfW},0 0,${halfH} ${-halfW},0`;
-      g.appendChild(svgEl('polygon', {
-        points: pts,
-        fill: '#1e2a3a', stroke: '#f59e0b', 'stroke-width': 1.5,
-      }));
-      break;
-    }
-    case 'merge': {
-      g.appendChild(svgEl('circle', {
-        cx: 0, cy: 0, r: halfW,
-        fill: '#1e2a3a', stroke: '#94a3b8', 'stroke-width': 1.5,
-      }));
-      break;
-    }
-    case 'start-event': {
-      g.appendChild(svgEl('circle', {
-        cx: 0, cy: 0, r: halfW,
-        fill: '#22c55e', stroke: '#16a34a', 'stroke-width': 1.5,
-      }));
-      break;
-    }
-    case 'end-event': {
-      g.appendChild(svgEl('circle', {
-        cx: 0, cy: 0, r: halfW,
-        fill: '#ef4444', stroke: '#dc2626', 'stroke-width': 2,
-      }));
-      break;
-    }
-    case 'intermediate-event': {
-      g.appendChild(svgEl('circle', {
-        cx: 0, cy: 0, r: halfW,
-        fill: 'none', stroke: '#4a9eff', 'stroke-width': 1.5,
-      }));
-      g.appendChild(svgEl('circle', {
-        cx: 0, cy: 0, r: halfW - 3,
-        fill: 'none', stroke: '#4a9eff', 'stroke-width': 0.8,
-      }));
-      break;
-    }
-    case 'process-group': {
-      g.appendChild(svgEl('rect', {
-        x: -halfW, y: -halfH,
-        width: dims.w, height: dims.h,
-        rx: 4,
-        fill: 'none', stroke: '#4a9eff', 'stroke-width': 1.5,
-        'stroke-dasharray': '6 3',
-      }));
-      break;
-    }
-    default: {
-      g.appendChild(svgEl('rect', {
-        x: -halfW, y: -halfH,
-        width: dims.w, height: dims.h,
-        rx: 4,
-        fill: '#1e2a3a', stroke: '#94a3b8', 'stroke-width': 1,
-      }));
-    }
-  }
-
-  return g;
-}
 
 // ─────────────────────────────────────────────────────────────
 // Multi-select: box select
@@ -2304,23 +1916,6 @@ function _updateMinimap() {
 // ─────────────────────────────────────────────────────────────
 // Auto-Layout button
 // ─────────────────────────────────────────────────────────────
-
-function initAutoLayout() {
-  const btn = dom.btnAutoLayout;
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    if (!state.graph) return;
-    // Save current positions to undo stack
-    pushUndo();
-    // Run auto-layout algorithm
-    autoLayout(state.graph);
-    // Re-render
-    renderAll(state.graph);
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
 // Lane reordering (drag lane headers to reorder)
 // ─────────────────────────────────────────────────────────────
 
@@ -2495,20 +2090,15 @@ export function initInteractions() {
   initArrowOptions();
   initConnectionHoverTooltip();
   initPortIndicators();
-  initPaletteToggle();
-  initPaletteDrag();
   initMultiSelect();
-  initNodeSelection();
   initConnectionSelection();
   initCanvasDeselect();
-  initPropertyPanel();
   initContextMenu();
   initAddLaneButton();
   initLaneContextMenu();
   initLaneRename();
   initLaneDrag();
   initZoomPan();
-  initAutoLayout();
 
   // Prevent unwanted body scroll caused by header buttons overflowing the viewport.
   // When Playwright (or the browser) calls scrollIntoView on an off-screen button,
