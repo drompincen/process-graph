@@ -28,22 +28,8 @@
 
     <div class="h-divider"></div>
 
-    <!-- View mode buttons -->
-    <div id="view-mode-group" role="group">
-      <button id="btn-before"  class="view-btn" data-mode="before">Before</button>
-      <button id="btn-split"   class="view-btn active" data-mode="split">Split</button>
-      <button id="btn-after"   class="view-btn" data-mode="after">After</button>
-      <button id="btn-overlay" class="view-btn" data-mode="overlay">Overlay</button>
-    </div>
-
-    <div class="h-divider"></div>
-
-    <!-- Phase dots injected here by diff.js (2-phase model) -->
-    <div id="phase-dots"></div>
-
-    <!-- Phase Navigation (shown when graph has >2 phases) -->
+    <!-- Phase Navigation (multi-phase slider + dots) -->
     <div id="phase-nav" style="display:none">
-      <div class="h-divider"></div>
       <span class="phase-label">Phase:</span>
       <div id="phase-slider-container">
         <input type="range" id="phase-slider" min="0" max="3" value="0" step="1">
@@ -53,27 +39,25 @@
       <button id="btn-diff" class="view-btn" title="Highlight changes between phases">Diff</button>
     </div>
 
-    <!-- Flow selector (shown when graph.flows present) -->
-    <select id="flow-selector" style="display:none" title="Select process path"></select>
-  </div>
+    <div class="h-divider"></div>
 
-  <div class="controls-right">
-    <!-- Simulation controls -->
-    <button id="btn-play" title="Simulate process">▶ Simulate</button>
-    <button id="btn-next" title="Next step" disabled>›</button>
-    <button id="btn-ff"   title="Fast forward" disabled>»</button>
-    <button id="btn-time-sim" title="Time-based simulation">⏱ Time Sim</button>
-    <button id="btn-agent-sim" title="Agent-based simulation">👥 Agent Sim</button>
-    <span id="sim-clock" class="sim-clock" style="display:none">00:00</span>
-    <span id="sim-speed-group" style="display:none">
-      <button class="speed-btn" data-speed="1">1x</button>
-      <button class="speed-btn active" data-speed="2">2x</button>
-      <button class="speed-btn" data-speed="5">5x</button>
-      <button class="speed-btn" data-speed="10">10x</button>
-    </span>
+    <!-- Playback controls (archviz-style) -->
+    <div class="playback-controls">
+      <button id="btn-rewind" class="playback-btn" title="Phase 0">⏮</button>
+      <button id="btn-play-phases" class="playback-btn" title="Auto-play phases">▶</button>
+      <button id="btn-ff-phase" class="playback-btn" title="Last phase">⏭</button>
+    </div>
 
     <div class="h-divider"></div>
 
+    <!-- Font size controls -->
+    <div class="font-controls">
+      <button id="btn-font-down" class="font-ctrl-btn" title="Decrease font">A−</button>
+      <button id="btn-font-up" class="font-ctrl-btn" title="Increase font">A+</button>
+    </div>
+  </div>
+
+  <div class="controls-right">
     <!-- Zoom presets -->
     <div id="zoom-group" role="group" title="Diagram width preset">
       <button id="btn-zoom-fit" class="zoom-btn active" data-zoom="fit"  title="Fit to window">Fit</button>
@@ -85,8 +69,6 @@
 
     <!-- Story mode (shown when graph.story present) -->
     <button id="btn-story" style="display:none" title="Open story mode">📖 Story</button>
-
-    <div class="h-divider"></div>
 
     <!-- KPI overlay toggle -->
     <button id="btn-kpi-overlay" title="Toggle KPI overlays">KPI</button>
@@ -212,7 +194,7 @@
 <div id="pane-resizer"></div>
 <div id="log-pane">
   <div id="log-entries">
-    <div class="log-ready">Ready — load a diagram and click Simulate</div>
+    <div class="log-ready">Ready — load a diagram to begin</div>
   </div>
 </div>
 
@@ -253,22 +235,28 @@
      ═══════════════════════════════════════════════════════════ -->
 <script type="module" src="js/main.js"></script>
 
-<!-- Phase slider wiring (multi-phase model) -->
+<!-- Phase slider wiring + playback + font controls -->
 <script type="module">
 import { state, dom } from './js/state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Wait a tick for main.js init to complete and populate dom{}
-  setTimeout(wirePhaseNav, 0);
+  setTimeout(() => {
+    wirePhaseNav();
+    wirePlayback();
+    wireFontControls();
+  }, 0);
 });
 
+/* ════════════════════════════════════════════════════════════════
+   PHASE NAVIGATION
+   ════════════════════════════════════════════════════════════════ */
 function wirePhaseNav() {
   const slider    = dom.phaseSlider;
   const container = dom.phaseNav;
   const label     = dom.phaseCurrentLabel;
   const dotsTrack = dom.phaseDotsTrack;
   const diffBtn   = dom.btnDiff;
-  const viewGroup = dom.viewModeGroup;
 
   if (!slider || !container) {
     console.warn('[phase-nav] DOM elements not found, skipping phase nav wiring');
@@ -276,45 +264,34 @@ function wirePhaseNav() {
   }
 
   // ── Observe graph loads via json-selector changes and MutationObserver ──
-  // We poll state.graph on selector change and initial load
   const jsonSel = dom.jsonSelector;
   if (jsonSel) {
     jsonSel.addEventListener('change', () => {
-      // Small delay to let loadDiagramFile finish
       setTimeout(() => syncPhaseNavVisibility(), 200);
     });
   }
 
-  // Also observe when diagram-svg children change (indicates a render)
   const svgEl = dom.diagramSvg;
   if (svgEl) {
     const observer = new MutationObserver(() => syncPhaseNavVisibility());
     observer.observe(svgEl, { childList: true, subtree: true });
   }
 
-  // Initial sync after a short delay for the first diagram load
   setTimeout(() => syncPhaseNavVisibility(), 500);
 
-  // ── Show/hide phase nav based on graph.phases ──
   function syncPhaseNavVisibility() {
     const g = state.graph;
     if (!g || !g.phases || g.phases.length <= 2) {
       container.style.display = 'none';
-      // Show the old view-mode buttons
-      if (viewGroup) viewGroup.style.display = '';
       return;
     }
 
-    // Multi-phase: show slider, hide old view-mode buttons
     container.style.display = 'flex';
-    if (viewGroup) viewGroup.style.display = 'none';
 
-    // Configure slider range
     const maxIdx = g.phases.length - 1;
     slider.min = '0';
     slider.max = String(maxIdx);
 
-    // Clamp currentPhaseIndex
     if (state.currentPhaseIndex > maxIdx) state.currentPhaseIndex = maxIdx;
     slider.value = String(state.currentPhaseIndex);
 
@@ -322,7 +299,6 @@ function wirePhaseNav() {
     updateLabel(g.phases, state.currentPhaseIndex);
   }
 
-  // ── Render dot indicators under the slider ──
   function renderDots(phases, activeIdx) {
     if (!dotsTrack) return;
     dotsTrack.innerHTML = '';
@@ -336,7 +312,6 @@ function wirePhaseNav() {
     });
   }
 
-  // ── Update the label text ──
   function updateLabel(phases, idx) {
     if (!label) return;
     const phase = phases[idx];
@@ -349,7 +324,6 @@ function wirePhaseNav() {
     }
   }
 
-  // ── Slider input handler ──
   slider.addEventListener('input', () => {
     const idx = parseInt(slider.value, 10);
     state.currentPhaseIndex = idx;
@@ -359,12 +333,9 @@ function wirePhaseNav() {
 
     renderDots(g.phases, idx);
     updateLabel(g.phases, idx);
-
-    // Trigger re-render if renderAll is available
     triggerReRender();
   });
 
-  // ── Diff button toggle ──
   if (diffBtn) {
     diffBtn.addEventListener('click', () => {
       state.diffMode = !state.diffMode;
@@ -373,10 +344,7 @@ function wirePhaseNav() {
     });
   }
 
-  // ── Trigger re-render by dispatching a custom event ──
-  // main.js modules can listen for this; we also try calling renderAll directly
   function triggerReRender() {
-    // Dispatch a custom event that renderer/diff modules can listen for
     window.dispatchEvent(new CustomEvent('phase-change', {
       detail: {
         phaseIndex: state.currentPhaseIndex,
@@ -384,11 +352,84 @@ function wirePhaseNav() {
       }
     }));
 
-    // Also try to call renderAll via dynamic import (safe if module exists)
     import('./js/renderer.js').then(mod => {
       if (mod.renderAll && state.graph) mod.renderAll(state.graph);
     }).catch(() => { /* renderer not loaded yet */ });
   }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PLAYBACK CONTROLS (archviz-style rewind / play / fast-forward)
+   ════════════════════════════════════════════════════════════════ */
+function wirePlayback() {
+  const slider  = dom.phaseSlider;
+  const btnRew  = document.getElementById('btn-rewind');
+  const btnPlay = document.getElementById('btn-play-phases');
+  const btnFF   = document.getElementById('btn-ff-phase');
+
+  if (!slider || !btnRew || !btnPlay || !btnFF) return;
+
+  let playInterval = null;
+
+  btnRew.addEventListener('click', () => {
+    stopPlay();
+    slider.value = 0;
+    slider.dispatchEvent(new Event('input'));
+  });
+
+  btnFF.addEventListener('click', () => {
+    stopPlay();
+    slider.value = slider.max;
+    slider.dispatchEvent(new Event('input'));
+  });
+
+  btnPlay.addEventListener('click', () => {
+    if (playInterval) {
+      stopPlay();
+    } else {
+      btnPlay.textContent = '⏸';
+      btnPlay.title = 'Pause auto-play';
+      playInterval = setInterval(() => {
+        const v = parseInt(slider.value, 10);
+        if (v < parseInt(slider.max, 10)) {
+          slider.value = v + 1;
+          slider.dispatchEvent(new Event('input'));
+        } else {
+          stopPlay();
+        }
+      }, 2000);
+    }
+  });
+
+  function stopPlay() {
+    if (playInterval) {
+      clearInterval(playInterval);
+      playInterval = null;
+    }
+    btnPlay.textContent = '▶';
+    btnPlay.title = 'Auto-play phases';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FONT SIZE CONTROLS (A- / A+)
+   ════════════════════════════════════════════════════════════════ */
+function wireFontControls() {
+  const btnDown = document.getElementById('btn-font-down');
+  const btnUp   = document.getElementById('btn-font-up');
+
+  if (!btnDown || !btnUp) return;
+
+  function adjustFontSize(delta) {
+    document.querySelectorAll('#nodes-layer text, #annotations-layer text').forEach(t => {
+      const size = parseFloat(getComputedStyle(t).fontSize) || 12;
+      const clamped = Math.max(8, Math.min(20, size + delta));
+      t.style.fontSize = clamped + 'px';
+    });
+  }
+
+  btnDown.addEventListener('click', () => adjustFontSize(-1));
+  btnUp.addEventListener('click', () => adjustFontSize(1));
 }
 </script>
 

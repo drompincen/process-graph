@@ -93,14 +93,7 @@ async function loadModules() {
 // ── Diagram discovery ──────────────────────────────────────────
 async function discoverDiagrams() {
   const fallback = [
-    { file: 'order-approval.json',   label: 'Order Approval Process' },
-    { file: 'ticket-triage.json',    label: 'Ticket Triage' },
-    { file: 'onboarding.json',       label: 'Employee Onboarding' },
-    { file: 'incident-response.json', label: 'Incident Response' },
-    { file: 'expense-claim.json',             label: 'Expense Claim' },
-    { file: 'manufacturing-fulfillment.json', label: 'Manufacturing Order Fulfillment' },
-    { file: 'lean-six-sigma.json',            label: 'Lean Six Sigma — Warranty Claims' },
-    { file: 'car-loan.json',                  label: 'Auto Loan Application' },
+    { file: 'car-loan.json', label: 'Auto Loan Application' },
   ];
 
   let diagrams = fallback;

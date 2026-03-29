@@ -144,7 +144,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 }
 .btn-primary:hover { background: #2563eb; }
 
-/* View mode buttons */
+/* View mode buttons (also used by Diff toggle) */
 .view-btn {
   background: transparent;
   border-color: var(--border-dim);
@@ -160,7 +160,59 @@ button:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
   border-color: var(--accent);
   color: var(--accent);
 }
-#view-mode-group { display: flex; gap: 2px; }
+
+/* ── Playback controls (archviz-style) ─────────────────────── */
+.playback-controls {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.playback-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-mid);
+  height: 30px;
+  width: 32px;
+  padding: 0;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.playback-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-main);
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Font size controls ────────────────────────────────────── */
+.font-controls {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.font-ctrl-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-mid);
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.font-ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-main);
+  background: rgba(255,255,255,0.08);
+}
 
 /* Zoom preset buttons — same style as view-btn */
 .zoom-btn {
@@ -300,8 +352,7 @@ select:focus { outline: none; border-color: var(--accent); }
 .modal-opt input { accent-color: var(--accent); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 
-/* ── Phase dot buttons ───────────────────────────────────────── */
-#phase-dots { display: flex; gap: 4px; align-items: center; }
+/* ── Phase dot buttons (legacy 2-phase model, kept for compat) ── */
 .phase-dot-btn {
   background: transparent;
   border: 1px solid var(--border-mid);
@@ -441,14 +492,14 @@ select:focus { outline: none; border-color: var(--accent); }
 @media (max-width: 900px) {
   .brand { display: none; }
   .h-divider:first-of-type { display: none; }
-  #phase-dots { display: none; }
   #phase-nav #phase-current-label { display: none; }
   #phase-slider-container { width: 100px; }
+  .font-controls { display: none; }
 }
 
 @media (max-width: 640px) {
   .controls-right .h-divider { display: none; }
-  #btn-ff, #btn-next { display: none; }
+  .playback-controls { display: none; }
   #btn-story { display: none; }
 }
 
