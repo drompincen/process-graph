@@ -344,7 +344,11 @@ function initDrag() {
       if (dragGroup) {
         dragGroup.removeAttribute('transform');
         dragGroup = null;
-        if (state.graph) renderAll(state.graph);
+        if (state.graph) {
+          state._skipLaneResize = true;
+          renderAll(state.graph);
+          state._skipLaneResize = false;
+        }
       }
       return;
     }
@@ -402,8 +406,11 @@ function initDrag() {
       }
     }
 
-    // Full re-render so edges reconnect properly
+    // Re-render preserving lane sizes. Set a flag so renderAll skips
+    // autoResizeLanes — we don't want swimlanes resizing during drag.
+    state._skipLaneResize = true;
     renderAll(state.graph);
+    state._skipLaneResize = false;
 
     dragGroup = null;
     nodeId = null;

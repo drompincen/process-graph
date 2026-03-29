@@ -1927,7 +1927,10 @@ export function renderAll(graph) {
   }
 
   // Auto-resize lanes to fit their content before computing layout
-  autoResizeLanes(graph);
+  // Skip during drag — lanes should stay fixed when user moves nodes
+  if (!state._skipLaneResize) {
+    autoResizeLanes(graph);
+  }
 
   const layout = computeLayout(graph, svgWidth);
   state.layout = layout;
