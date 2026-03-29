@@ -53,13 +53,15 @@
     { "id": "risk-gateway",   "type": "gateway",     "label": "Risk\nLevel?",                  "lane": "system",    "x": 800, "phase": ["phase2"] },
     { "id": "auto-approve",   "type": "task",        "label": "Auto-Approve\n(Low Risk)",      "lane": "system",    "x": 940, "phase": ["phase2"] },
     { "id": "uw-exception",   "type": "task",        "label": "UW Exception\nReview",           "lane": "underwrite","x": 940, "phase": ["phase2"] },
+    { "id": "uw-gw",          "type": "gateway",     "label": "Approved?",                      "lane": "underwrite","x": 1080, "phase": ["phase2"] },
 
     { "id": "instant-form",   "type": "task",        "label": "1-Minute\nOnline Form",         "lane": "applicant", "x": 240, "phase": "phase3", "state": "automated" },
     { "id": "consent-api",    "type": "system",      "label": "Consent &\nData Pull",           "lane": "system",    "x": 240, "phase": "phase3", "state": "automated" },
     { "id": "ai-underwriter", "type": "agent",       "label": "AI\nUnderwriter",               "lane": "system",    "x": 800, "phase": "phase3", "state": "automated" },
     { "id": "instant-gateway","type": "gateway",     "label": "Confidence?",                    "lane": "system",    "x": 940, "phase": "phase3" },
     { "id": "instant-approve","type": "task",        "label": "Instant\nApproval",              "lane": "system",    "x": 1080, "phase": "phase3", "state": "automated" },
-    { "id": "human-escalate", "type": "task",        "label": "Human\nEscalation",              "lane": "underwrite","x": 1080, "phase": "phase3" }
+    { "id": "human-escalate", "type": "task",        "label": "Human\nEscalation",              "lane": "underwrite","x": 1080, "phase": "phase3" },
+    { "id": "escalate-gw",    "type": "gateway",     "label": "Approved?",                      "lane": "underwrite","x": 1200, "phase": "phase3" }
   ],
 
   "connections": [
@@ -93,8 +95,9 @@
     { "id": "c-risk-auto",         "from": "risk-gateway",   "to": "auto-approve",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Low Risk", "sourcePort": "2" },
     { "id": "c-risk-exception",    "from": "risk-gateway",   "to": "uw-exception",   "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "High Risk", "sourcePort": "3", "targetPort": "1" },
     { "id": "c-auto-approved2",    "from": "auto-approve",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"] },
-    { "id": "c-exception-approved","from": "uw-exception",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Approved" },
-    { "id": "c-exception-denied",  "from": "uw-exception",   "to": "end-denied",     "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "Denied" },
+    { "id": "c-exception-gw",      "from": "uw-exception",   "to": "uw-gw",          "type": "sequence", "phase": ["phase2"] },
+    { "id": "c-uwgw-approved",    "from": "uw-gw",          "to": "end-approved",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Approved", "sourcePort": "2" },
+    { "id": "c-uwgw-denied",      "from": "uw-gw",          "to": "end-denied",     "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "Denied", "sourcePort": "3" },
 
     { "id": "c-start-instant",     "from": "start",           "to": "instant-form",   "type": "sequence", "phase": "phase3" },
     { "id": "c-instant-consent",   "from": "instant-form",    "to": "consent-api",    "type": "sequence", "phase": "phase3", "sourcePort": "3", "targetPort": "1" },
@@ -106,8 +109,9 @@
     { "id": "c-gw-instant",        "from": "instant-gateway",  "to": "instant-approve","type": "sequence", "phase": "phase3", "decision": "yes", "label": "High", "sourcePort": "2" },
     { "id": "c-gw-escalate",       "from": "instant-gateway",  "to": "human-escalate", "type": "sequence", "phase": "phase3", "decision": "no",  "label": "Low", "sourcePort": "3", "targetPort": "1" },
     { "id": "c-instant-funded",    "from": "instant-approve",  "to": "end-approved",   "type": "sequence", "phase": "phase3" },
-    { "id": "c-escalate-approved", "from": "human-escalate",   "to": "end-approved",   "type": "sequence", "phase": "phase3", "decision": "yes", "label": "Approved" },
-    { "id": "c-escalate-denied",   "from": "human-escalate",   "to": "end-denied",     "type": "sequence", "phase": "phase3", "decision": "no",  "label": "Denied" }
+    { "id": "c-escalate-gw",       "from": "human-escalate",   "to": "escalate-gw",    "type": "sequence", "phase": "phase3" },
+    { "id": "c-escgw-approved",    "from": "escalate-gw",      "to": "end-approved",   "type": "sequence", "phase": "phase3", "decision": "yes", "label": "Approved", "sourcePort": "2" },
+    { "id": "c-escgw-denied",      "from": "escalate-gw",      "to": "end-denied",     "type": "sequence", "phase": "phase3", "decision": "no",  "label": "Denied", "sourcePort": "3" }
   ],
 
   "sequence": [
