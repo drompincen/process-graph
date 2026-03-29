@@ -376,6 +376,7 @@ function wireFontControls() {
       const size = parseFloat(getComputedStyle(t).fontSize) || 12;
       const clamped = Math.max(8, Math.min(20, size + delta));
       t.style.fontSize = clamped + 'px';
+      t.style.fontWeight = 'normal';
     });
   }
 
@@ -429,11 +430,15 @@ function resizeNodesToFitText() {
     const newH = Math.max(MIN_H, Math.max(curH, textH + 2 * PAD_Y));
 
     if (newW !== curW || newH !== curH) {
+      // Expand rect from its center, keeping it in place
+      const curX = parseFloat(rect.getAttribute('x'));
+      const curY = parseFloat(rect.getAttribute('y'));
+      const cx = curX + curW / 2;
+      const cy = curY + curH / 2;
       rect.setAttribute('width', newW);
       rect.setAttribute('height', newH);
-      // Re-center rect around the node's transform origin (0,0 of the group)
-      rect.setAttribute('x', -newW / 2);
-      rect.setAttribute('y', -newH / 2);
+      rect.setAttribute('x', cx - newW / 2);
+      rect.setAttribute('y', cy - newH / 2);
     }
   });
 }
