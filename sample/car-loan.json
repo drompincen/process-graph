@@ -90,17 +90,17 @@
     { "id": "c-agent-credit2",     "from": "doc-agent",      "to": "credit-api",     "type": "sequence", "phase": ["phase2"] },
     { "id": "c-credit-scoring",    "from": "credit-api",     "to": "scoring-engine", "type": "sequence", "phase": ["phase2"] },
     { "id": "c-scoring-risk",      "from": "scoring-engine", "to": "risk-gateway",   "type": "sequence", "phase": ["phase2"] },
-    { "id": "c-risk-auto",         "from": "risk-gateway",   "to": "auto-approve",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Low Risk" },
-    { "id": "c-risk-exception",    "from": "risk-gateway",   "to": "uw-exception",   "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "High Risk", "route": "down" },
+    { "id": "c-risk-auto",         "from": "risk-gateway",   "to": "auto-approve",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Low Risk", "sourcePort": "2" },
+    { "id": "c-risk-exception",    "from": "risk-gateway",   "to": "uw-exception",   "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "High Risk", "sourcePort": "3", "targetPort": "1" },
     { "id": "c-auto-approved2",    "from": "auto-approve",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"] },
     { "id": "c-exception-approved","from": "uw-exception",   "to": "end-approved",   "type": "sequence", "phase": ["phase2"], "decision": "yes", "label": "Approved" },
     { "id": "c-exception-denied",  "from": "uw-exception",   "to": "end-denied",     "type": "sequence", "phase": ["phase2"], "decision": "no",  "label": "Denied" },
 
     { "id": "c-start-instant",     "from": "start",           "to": "instant-form",   "type": "sequence", "phase": "phase3" },
     { "id": "c-instant-consent",   "from": "instant-form",    "to": "consent-api",    "type": "sequence", "phase": "phase3" },
-    { "id": "c-consent-agent3",    "from": "consent-api",     "to": "doc-agent",      "type": "sequence", "phase": "phase3" },
-    { "id": "c-consent-credit",    "from": "consent-api",     "to": "credit-api",     "type": "sequence", "phase": "phase3" },
-    { "id": "c-agent-aiuw",        "from": "doc-agent",       "to": "ai-underwriter", "type": "sequence", "phase": "phase3" },
+    { "id": "c-consent-agent3",    "from": "consent-api",     "to": "doc-agent",      "type": "sequence", "phase": "phase3", "sourcePort": "3", "targetPort": "1" },
+    { "id": "c-consent-credit",    "from": "consent-api",     "to": "credit-api",     "type": "sequence", "phase": "phase3", "sourcePort": "2" },
+    { "id": "c-agent-aiuw",        "from": "doc-agent",       "to": "ai-underwriter", "type": "sequence", "phase": "phase3", "sourcePort": "2" },
     { "id": "c-credit-aiuw",       "from": "credit-api",      "to": "ai-underwriter", "type": "message",  "phase": "phase3" },
     { "id": "c-aiuw-gateway",      "from": "ai-underwriter",  "to": "instant-gateway","type": "sequence", "phase": "phase3" },
     { "id": "c-gw-instant",        "from": "instant-gateway",  "to": "instant-approve","type": "sequence", "phase": "phase3", "decision": "yes", "label": ">95%" },
@@ -204,6 +204,17 @@
       { "id": "ai-underwriter", "type": "agent",           "lane": "system",     "phase": "phase3", "role": "Full AI underwriting: income verification, DTI calc, risk model, compliance check — all in <10 seconds" },
       { "id": "instant-form",   "type": "task",            "lane": "applicant",  "phase": "phase3", "role": "Pre-filled form with employer/income from payroll API, SSN consent for credit pull — 60 seconds total" }
     ],
+    "portDefinitions": {
+      "description": "Each node has 4 numbered entry/exit ports at edge midpoints",
+      "ports": {
+        "1": "top center — connections arriving from above",
+        "2": "right center — connections going forward (left-to-right flow)",
+        "3": "bottom center — connections going to a lower lane",
+        "4": "left center — connections arriving from the left"
+      },
+      "usage": "Set sourcePort/targetPort on a connection to control which edge the arrow exits/enters. Omit for automatic routing.",
+      "example": "{ sourcePort: '3', targetPort: '1' } = exit bottom of source, enter top of target"
+    },
     "invariants": [
       "Every phase has exactly one path from start to at least one end event",
       "No orphan nodes at any phase",

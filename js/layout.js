@@ -339,6 +339,11 @@ export function getPortPosition(nodeType, portId, nodeWidth, nodeHeight) {
       'out-bottom': { x: 0,      y: h / 2 },
       'out-bl':     { x: -w / 4, y: h / 4 },
       'out-br':     { x: w / 4,  y: h / 4 },
+      // Numbered: 1=top, 2=right, 3=bottom, 4=left
+      '1':          { x: 0,      y: -h / 2 },
+      '2':          { x: w / 2,  y: 0 },
+      '3':          { x: 0,      y: h / 2 },
+      '4':          { x: -w / 2, y: 0 },
     };
     return positions[portId] || { x: 0, y: 0 };
   }
@@ -348,12 +353,19 @@ export function getPortPosition(nodeType, portId, nodeWidth, nodeHeight) {
   const halfH = h / 2;
 
   const positions = {
+    // Named ports (legacy)
     'in-top':     { x: 0,      y: -halfH },
     'in-left':    { x: -halfW, y: 0 },
     'in-right':   { x: halfW,  y: 0 },
     'out-right':  { x: halfW,  y: 0 },
     'out-bottom': { x: 0,      y: halfH },
     'out-left':   { x: -halfW, y: 0 },
+
+    // Numbered ports (user-facing): 1=top, 2=right, 3=bottom, 4=left
+    '1':          { x: 0,      y: -halfH },   // top center
+    '2':          { x: halfW,  y: 0 },         // right center
+    '3':          { x: 0,      y: halfH },     // bottom center
+    '4':          { x: -halfW, y: 0 },         // left center
   };
   return positions[portId] || { x: 0, y: 0 };
 }
