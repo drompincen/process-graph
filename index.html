@@ -438,11 +438,16 @@ function resizeNodesToFitText() {
   });
 }
 
-/* Re-route connections after node boxes have been resized */
+/* Re-route connections after node boxes have been resized.
+   Only re-routes arrows — does NOT re-render nodes or lanes,
+   which would cause swimlanes to resize based on new node sizes. */
 function rerouteConnectionsAfterResize() {
-  import('./js/renderer.js').then(mod => {
-    if (mod.renderAll && state.graph) mod.renderAll(state.graph);
-  }).catch(() => { /* renderer not loaded yet */ });
+  import('./js/routing.js').then(mod => {
+    if (mod.renderConnections && state.graph && state.layout) {
+      const viewMode = state.viewMode || 'after';
+      mod.renderConnections(state.graph, state.layout, viewMode);
+    }
+  }).catch(() => { /* routing not loaded yet */ });
 }
 </script>
 
