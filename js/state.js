@@ -88,7 +88,7 @@ export function initDom() {
     'chk-show-metrics', 'chk-show-kpis', 'chk-show-benefits',
     'chk-sequence-view', 'chk-pause-step', 'chk-light-mode',
     'delay-slider', 'delay-label',
-    'btn-font-smaller', 'btn-font-larger',
+    'btn-font-down', 'btn-font-up',
 
     // File operations
     'btn-upload-json', 'btn-download-json',
