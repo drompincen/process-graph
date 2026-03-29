@@ -52,7 +52,7 @@
     { "id": "scoring-engine", "type": "subprocess",  "label": "Auto-Scoring\nEngine",          "lane": "system",    "x": 660, "phase": ["phase2"] },
     { "id": "risk-gateway",   "type": "gateway",     "label": "Risk\nLevel?",                  "lane": "system",    "x": 800, "phase": ["phase2"] },
     { "id": "auto-approve",   "type": "task",        "label": "Auto-Approve\n(Low Risk)",      "lane": "system",    "x": 940, "phase": ["phase2"] },
-    { "id": "uw-exception",   "type": "task",        "label": "UW Exception\nReview",           "lane": "underwrite","x": 1100, "phase": ["phase2"] },
+    { "id": "uw-exception",   "type": "task",        "label": "UW Exception\nReview",           "lane": "underwrite","x": 940, "phase": ["phase2"] },
 
     { "id": "instant-form",   "type": "task",        "label": "1-Minute\nOnline Form",         "lane": "applicant", "x": 240, "phase": "phase3", "state": "automated" },
     { "id": "consent-api",    "type": "system",      "label": "Consent &\nData Pull",           "lane": "system",    "x": 240, "phase": "phase3", "state": "automated" },
