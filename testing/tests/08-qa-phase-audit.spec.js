@@ -538,6 +538,39 @@ function checkDecisionLabelsFromGateways(labels, boxes) {
   return violations;
 }
 
+// ─── Text Overflow Check ────────────────────────────────────────────────────
+
+async function checkTextOverflow(page) {
+  return page.evaluate(() => {
+    const violations = [];
+    document.querySelectorAll('#nodes-layer [data-node-id]').forEach(g => {
+      const rect = g.querySelector('rect');
+      const texts = g.querySelectorAll('text');
+      if (!rect || texts.length === 0) return;
+      const cls = g.className.baseVal || '';
+      if (cls.includes('gateway') || cls.includes('start-event') || cls.includes('end-event')) return;
+
+      const rBB = rect.getBBox();
+      texts.forEach(t => {
+        const tBB = t.getBBox();
+        if (tBB.width === 0) return;
+        const overflow = Math.max(0, (tBB.x + tBB.width) - (rBB.x + rBB.width)) +
+                         Math.max(0, rBB.x - tBB.x) +
+                         Math.max(0, (tBB.y + tBB.height) - (rBB.y + rBB.height)) +
+                         Math.max(0, rBB.y - tBB.y);
+        if (overflow > 5) {
+          violations.push({
+            category: 'text-overflow',
+            severity: 'medium',
+            detail: 'Text in node ' + g.getAttribute('data-node-id') + ' overflows box by ' + Math.round(overflow) + 'px'
+          });
+        }
+      });
+    });
+    return violations;
+  });
+}
+
 // ─── Path parser ─────────────────────────────────────────────────────────────
 
 function parseWaypoints(d) {
@@ -589,8 +622,13 @@ for (const sample of SAMPLES) {
       // ── Gather labels ──
       const labels = await getAllConnectionLabels(page);
 
+      // ── Check text overflow (async — runs in browser) ──
+      const textOverflow = await checkTextOverflow(page);
+
       // ── Run all BPMN quality + best-practice checks ──
       const issues = [
+        // Text overflow
+        ...textOverflow,
         // Geometric quality
         ...checkNoOverlaps(boxes),
         ...checkNodeSpacing(boxes),

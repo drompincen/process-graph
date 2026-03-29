@@ -379,8 +379,70 @@ function wireFontControls() {
     });
   }
 
-  btnDown.addEventListener('click', () => adjustFontSize(-1));
-  btnUp.addEventListener('click', () => adjustFontSize(1));
+  btnDown.addEventListener('click', () => {
+    adjustFontSize(-1);
+    resizeNodesToFitText();
+    rerouteConnectionsAfterResize();
+  });
+  btnUp.addEventListener('click', () => {
+    adjustFontSize(1);
+    resizeNodesToFitText();
+    rerouteConnectionsAfterResize();
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AUTO-RESIZE NODE BOXES TO FIT TEXT
+   ════════════════════════════════════════════════════════════════ */
+function resizeNodesToFitText() {
+  const PAD_X = 16;
+  const PAD_Y = 12;
+  const MIN_W = 100;
+  const MIN_H = 50;
+
+  document.querySelectorAll('#nodes-layer [data-node-id]').forEach(g => {
+    const rect = g.querySelector('rect');
+    const texts = g.querySelectorAll('text');
+    if (!rect || texts.length === 0) return;
+
+    // Skip gateways (diamonds) and events (circles)
+    const cls = g.className.baseVal || '';
+    if (cls.includes('gateway') || cls.includes('start-event') || cls.includes('end-event')) return;
+
+    // Get combined text bbox
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    texts.forEach(t => {
+      const bb = t.getBBox();
+      if (bb.width === 0) return;
+      minX = Math.min(minX, bb.x);
+      minY = Math.min(minY, bb.y);
+      maxX = Math.max(maxX, bb.x + bb.width);
+      maxY = Math.max(maxY, bb.y + bb.height);
+    });
+    if (minX === Infinity) return;
+
+    const textW = maxX - minX;
+    const textH = maxY - minY;
+    const curW = parseFloat(rect.getAttribute('width'));
+    const curH = parseFloat(rect.getAttribute('height'));
+    const newW = Math.max(MIN_W, Math.max(curW, textW + 2 * PAD_X));
+    const newH = Math.max(MIN_H, Math.max(curH, textH + 2 * PAD_Y));
+
+    if (newW !== curW || newH !== curH) {
+      rect.setAttribute('width', newW);
+      rect.setAttribute('height', newH);
+      // Re-center rect around the node's transform origin (0,0 of the group)
+      rect.setAttribute('x', -newW / 2);
+      rect.setAttribute('y', -newH / 2);
+    }
+  });
+}
+
+/* Re-route connections after node boxes have been resized */
+function rerouteConnectionsAfterResize() {
+  import('./js/renderer.js').then(mod => {
+    if (mod.renderAll && state.graph) mod.renderAll(state.graph);
+  }).catch(() => { /* renderer not loaded yet */ });
 }
 </script>
 
