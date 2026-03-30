@@ -1,0 +1,516 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://process-graph.local/schema.json",
+  "title": "Process Graph Data Model",
+  "description": "JSON Schema for the process-graph diagramming application data format.",
+  "type": "object",
+  "required": ["lanes", "nodes"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Display title for the process diagram."
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the process."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes (may contain newlines)."
+    },
+
+    "metrics": {
+      "$ref": "#/definitions/metrics",
+      "description": "Before/after KPI metrics block."
+    },
+
+    "lanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/lane" },
+      "description": "Swimlane definitions — each lane represents an actor, system, or department."
+    },
+
+    "phases": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/phase" },
+      "description": "Improvement rollout phases for progressive filtering."
+    },
+
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/node" },
+      "description": "All diagram nodes (tasks, events, gateways, annotations, etc.)."
+    },
+
+    "connections": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/connection" },
+      "description": "Directed edges between nodes."
+    },
+
+    "flows": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/flow" },
+      "description": "Named animation sequences (e.g. happy path, exception path)."
+    },
+
+    "sequence": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/sequenceStep" },
+      "description": "Default animation sequence when no flow is selected."
+    },
+
+    "story": {
+      "$ref": "#/definitions/story",
+      "description": "Narrative block: problem, vision, idea cards, KPIs, benefits."
+    },
+
+    "comments": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/comment" },
+      "description": "Comments attached to nodes for collaboration and review."
+    },
+
+    "spec": {
+      "type": "object",
+      "description": "Optional machine-readable spec block for testing and validation.",
+      "properties": {
+        "schemaVersion": { "type": "string" },
+        "description": { "type": "string" },
+        "nodeInventory": { "type": "array", "items": { "type": "object" } },
+        "connectionInventory": { "type": "array", "items": { "type": "object" } },
+        "behaviors": { "type": "array", "items": { "type": "object" } },
+        "invariants": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+
+  "definitions": {
+
+    "comment": {
+      "type": "object",
+      "required": ["id", "nodeId", "text"],
+      "description": "A comment attached to a specific node.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique comment identifier."
+        },
+        "nodeId": {
+          "type": "string",
+          "description": "ID of the node this comment is attached to."
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name or identifier."
+        },
+        "text": {
+          "type": "string",
+          "description": "Comment text content."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the comment was created."
+        },
+        "resolved": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this comment has been resolved."
+        }
+      }
+    },
+
+    "metrics": {
+      "type": "object",
+      "description": "Before/after KPI comparison block.",
+      "properties": {
+        "before": { "$ref": "#/definitions/metricsSnapshot" },
+        "after":  { "$ref": "#/definitions/metricsSnapshot" }
+      },
+      "required": ["before", "after"]
+    },
+
+    "metricsSnapshot": {
+      "type": "object",
+      "description": "A single metrics snapshot (before or after state).",
+      "properties": {
+        "stepCount":      { "type": "number" },
+        "cycleTimeHours": { "type": "number" },
+        "handoffCount":   { "type": "number" },
+        "errorRate":      { "type": ["string", "number"] },
+        "automationPct":  { "type": "number" },
+        "costPerCase":    { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+
+    "lane": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique lane identifier referenced by nodes."
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for the lane header."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["persona", "system", "agent", "department"],
+          "default": "department",
+          "description": "Lane actor type. Defaults to 'department' if omitted."
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Hex accent colour for the lane."
+        },
+        "height": {
+          "type": "number",
+          "description": "Lane height in pixels."
+        }
+      }
+    },
+
+    "phase": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id":    { "type": "string" },
+        "label": { "type": "string" }
+      }
+    },
+
+    "phaseValue": {
+      "description": "Phase visibility: a single phase ID, 'before', 'after', 'both', or an array of phase IDs.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "label", "lane"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique node identifier."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "start-event",
+            "end-event",
+            "intermediate-event",
+            "task",
+            "subprocess",
+            "gateway",
+            "merge",
+            "process-group",
+            "persona",
+            "system",
+            "agent",
+            "annotation"
+          ],
+          "description": "Node type determines shape and port configuration."
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label (may contain \\n for line breaks)."
+        },
+        "lane": {
+          "type": "string",
+          "description": "ID of the lane this node belongs to."
+        },
+        "x": {
+          "type": "number",
+          "description": "Horizontal position (px). Snaps to 20px grid in edit mode."
+        },
+        "y": {
+          "type": "number",
+          "description": "Vertical position relative to lane (px). Usually computed by layout."
+        },
+        "phase": {
+          "$ref": "#/definitions/phaseValue",
+          "description": "When this node is visible: 'before', 'after', 'both', or phase ID(s)."
+        },
+        "diff": {
+          "type": "string",
+          "enum": ["added", "removed", "changed"],
+          "description": "Diff classification for overlay view."
+        },
+        "state": {
+          "type": "string",
+          "enum": ["bottleneck", "automated"],
+          "description": "Visual state badge."
+        },
+        "children": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Child node IDs (process-group only)."
+        },
+        "duration": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)?\\s*[dhm]?$",
+          "description": "Task duration for time simulation (e.g. '2h', '30m', '1d'). h=60min, d=480min."
+        },
+        "kpis": {
+          "type": "object",
+          "description": "KPI overlay data displayed as pills below the node.",
+          "properties": {
+            "duration":  { "type": "string", "description": "Time KPI (e.g. '2h')." },
+            "errorRate": { "type": "string", "description": "Error rate KPI (e.g. '3%')." },
+            "cost":      { "type": "string", "description": "Cost KPI (e.g. '$45')." }
+          },
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "connection": {
+      "type": "object",
+      "required": ["id", "from", "to"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique connection identifier."
+        },
+        "from": {
+          "type": "string",
+          "description": "Source node ID."
+        },
+        "to": {
+          "type": "string",
+          "description": "Target node ID."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["sequence", "message", "conditional", "association"],
+          "description": "Connection line style."
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional label displayed on the connection."
+        },
+        "phase": {
+          "$ref": "#/definitions/phaseValue",
+          "description": "Phase visibility for this connection."
+        },
+        "decision": {
+          "type": "string",
+          "description": "Decision branch label (e.g. 'yes', 'no') for gateway outgoing edges."
+        },
+        "offset": {
+          "type": "number",
+          "description": "Vertical offset for self-loop or parallel connections."
+        },
+        "sourcePort": {
+          "type": "string",
+          "enum": ["top", "right", "bottom", "left"],
+          "description": "Port on the source node where this connection originates."
+        },
+        "targetPort": {
+          "type": "string",
+          "enum": ["top", "right", "bottom", "left"],
+          "description": "Port on the target node where this connection arrives."
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability weight for decision branches in simulation (0-1). Defaults to equal probability if omitted."
+        }
+      }
+    },
+
+    "flow": {
+      "type": "object",
+      "required": ["id", "name", "sequence"],
+      "properties": {
+        "id":   { "type": "string" },
+        "name": { "type": "string" },
+        "sequence": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/sequenceStep" }
+        }
+      }
+    },
+
+    "sequenceStep": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from":   { "type": "string", "description": "Source node ID." },
+        "to":     { "type": "string", "description": "Target node ID." },
+        "text":   { "type": "string", "description": "Narration text for this step." },
+        "status": { "type": "string", "enum": ["ready", "wip", "blocked"], "description": "Step status badge." },
+        "phase":  { "$ref": "#/definitions/phaseValue" },
+        "popup": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["alert", "issue", "amplify"] },
+            "msg":  { "type": "string" }
+          },
+          "required": ["type", "msg"]
+        }
+      }
+    },
+
+    "story": {
+      "type": "object",
+      "description": "Narrative block for the improvement story.",
+      "properties": {
+        "storyId":   { "type": "string" },
+        "version":   { "type": "number" },
+        "createdAt": { "type": "string" },
+        "createdBy": { "type": "string" },
+
+        "problem": {
+          "type": "object",
+          "properties": {
+            "headline":    { "type": "string" },
+            "description": { "type": "string" },
+            "impactMetric": {
+              "type": "object",
+              "properties": {
+                "kpiId": { "type": "string" },
+                "value": { "type": "number" },
+                "unit":  { "type": "string" }
+              }
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label":   { "type": "string" },
+                  "url":     { "type": "string" },
+                  "addedAt": { "type": "string" },
+                  "addedBy": { "type": "string" }
+                }
+              }
+            },
+            "scope": { "type": "array", "items": { "type": "string" } },
+            "risks": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+
+        "vision": {
+          "type": "object",
+          "properties": {
+            "summary":     { "type": "string" },
+            "description": { "type": "string" },
+            "kpiTargets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kpiId":      { "type": "string" },
+                  "min":        { "type": "number" },
+                  "max":        { "type": "number" },
+                  "confidence": { "type": "string" },
+                  "horizon":    { "type": "string" }
+                }
+              }
+            },
+            "acceptanceCriteria": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label":       { "type": "string" },
+              "phaseRef":    { "type": "string" },
+              "description": { "type": "string" },
+              "duration":    { "type": "string" }
+            }
+          }
+        },
+
+        "ideaCards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id":         { "type": "string" },
+              "title":      { "type": "string" },
+              "phases":     { "type": "array", "items": { "type": "string" } },
+              "hypothesis": { "type": "string" },
+              "expectedKpiImpacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kpiId":      { "type": "string" },
+                    "delta":      { "type": "number" },
+                    "confidence": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+
+        "kpis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id":        { "type": "string" },
+              "label":     { "type": "string" },
+              "unit":      { "type": "string" },
+              "direction": { "type": "string", "enum": ["lower_is_better", "higher_is_better"] },
+              "baseline":  { "type": "number" },
+              "current":   { "type": "number" },
+              "format":    { "type": "string" }
+            }
+          }
+        },
+
+        "benefits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id":       { "type": "string" },
+              "title":    { "type": "string" },
+              "phaseId":  { "type": "string" },
+              "kpiId":    { "type": "string" },
+              "baseline": { "type": "number" },
+              "targetRange": {
+                "type": "object",
+                "properties": {
+                  "min": { "type": "number" },
+                  "max": { "type": "number" }
+                }
+              },
+              "boundNodes": { "type": "array", "items": { "type": "string" } },
+              "realized":   { "type": "boolean" }
+            }
+          }
+        },
+
+        "uiHints": {
+          "type": "object",
+          "properties": {
+            "initialView":  { "type": "string", "enum": ["before", "after", "split", "overlay"] },
+            "initialPhase": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
